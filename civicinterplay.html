@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gathering Intelligences — civicinterplay.io</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;1,8..60,300;1,8..60,400&display=swap" rel="stylesheet">
+  <style>
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --ochre: #E535AB;
+      --umber: #6B4A6B;
+      --sandstone: #E8E0E4;
+      --slate-blue: #8A8088;
+      --eucalyptus: #6B8F5E;
+      --teal-estuary: #4A7A4A;
+      --deep-soil: #2C2028;
+      --fog: #C9BDC9;
+      --sky-pale: #D4C8D4;
+      --text: #2C2028;
+      --text-muted: #6B5E6B;
+    }
+
+    html { scroll-behavior: auto; }
+
+    body {
+      font-family: 'Source Serif 4', 'Georgia', serif;
+      color: var(--text);
+      background: var(--deep-soil);
+      overflow-x: hidden;
+    }
+
+    /* ====== TERRAIN CANVAS ====== */
+    #terrain-canvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 0;
+    }
+
+    /* ====== SCROLL SPACER ====== */
+    #scroll-spacer {
+      height: 600vh;
+      position: relative;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    /* ====== CONTENT OVERLAYS ====== */
+    .content-layer {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 2;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .content-panel {
+      pointer-events: auto;
+      max-width: 640px;
+      width: 90%;
+      padding: 3rem 2.5rem;
+      background: rgba(44, 32, 40, 0.55);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(229, 53, 171, 0.12);
+      border-radius: 2px;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.8s ease, transform 0.8s ease;
+    }
+
+    .content-panel.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .content-panel h1 {
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 300;
+      line-height: 1.25;
+      color: var(--sandstone);
+      margin-bottom: 1.5rem;
+      letter-spacing: -0.01em;
+    }
+
+    .content-panel h1 em {
+      font-style: italic;
+      color: #E535AB;
+    }
+
+    .content-panel p {
+      font-size: 1.05rem;
+      line-height: 1.7;
+      color: rgba(232, 224, 228, 0.8);
+      margin-bottom: 1.2rem;
+      font-weight: 300;
+    }
+
+    .content-panel p:last-child { margin-bottom: 0; }
+
+    .content-panel .quiet {
+      font-size: 0.9rem;
+      color: rgba(229, 53, 171, 0.5);
+      font-style: italic;
+    }
+
+    /* ====== SCROLL INDICATOR ====== */
+    .scroll-indicator {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      color: rgba(232, 224, 228, 0.4);
+      font-size: 0.8rem;
+      letter-spacing: 0.15em;
+      text-transform: lowercase;
+      transition: opacity 0.5s ease;
+      pointer-events: none;
+    }
+
+    .scroll-indicator::after {
+      content: '';
+      display: block;
+      width: 1px;
+      height: 24px;
+      background: rgba(229, 53, 171, 0.25);
+      margin: 0.6rem auto 0;
+      animation: drift 2.5s ease-in-out infinite;
+    }
+
+    @keyframes drift {
+      0%, 100% { transform: translateY(0); opacity: 0.3; }
+      50% { transform: translateY(6px); opacity: 0.6; }
+    }
+
+    /* ====== BRIEF FORM ====== */
+    #brief-section {
+      position: relative;
+      z-index: 5;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4rem 1.5rem;
+      background: linear-gradient(to bottom,
+        transparent 0%,
+        rgba(44, 32, 40, 0.95) 8%,
+        rgba(44, 32, 40, 0.98) 100%
+      );
+    }
+
+    .brief-container {
+      max-width: 600px;
+      width: 100%;
+    }
+
+    .brief-container h2 {
+      font-size: clamp(1.5rem, 3vw, 2rem);
+      font-weight: 300;
+      color: var(--sandstone);
+      margin-bottom: 0.8rem;
+    }
+
+    .brief-container .intro-text {
+      font-size: 1rem;
+      line-height: 1.7;
+      color: rgba(232, 224, 228, 0.6);
+      margin-bottom: 2.5rem;
+      font-weight: 300;
+    }
+
+    .form-field {
+      margin-bottom: 2rem;
+    }
+
+    .form-field label {
+      display: block;
+      font-size: 0.95rem;
+      color: var(--ochre);
+      margin-bottom: 0.5rem;
+      font-weight: 400;
+    }
+
+    .form-field .field-hint {
+      display: block;
+      font-size: 0.82rem;
+      color: rgba(232, 224, 228, 0.4);
+      margin-bottom: 0.6rem;
+      font-style: italic;
+      line-height: 1.5;
+    }
+
+    .form-field input,
+    .form-field textarea,
+    .form-field select {
+      width: 100%;
+      padding: 0.9rem 1rem;
+      font-family: 'Source Serif 4', Georgia, serif;
+      font-size: 1rem;
+      color: var(--sandstone);
+      background: rgba(107, 74, 107, 0.2);
+      border: 1px solid rgba(229, 53, 171, 0.15);
+      border-radius: 1px;
+      outline: none;
+      transition: border-color 0.3s ease;
+    }
+
+    .form-field input:focus,
+    .form-field textarea:focus,
+    .form-field select:focus {
+      border-color: rgba(229, 53, 171, 0.4);
+    }
+
+    .form-field input::placeholder,
+    .form-field textarea::placeholder {
+      color: rgba(232, 224, 228, 0.25);
+    }
+
+    .form-field textarea {
+      min-height: 120px;
+      resize: vertical;
+      line-height: 1.6;
+    }
+
+    .form-field select {
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23C2956B' stroke-width='1.2' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 1rem center;
+      padding-right: 2.5rem;
+    }
+
+    .form-field select option {
+      background: var(--deep-soil);
+      color: var(--sandstone);
+    }
+
+    .submit-btn {
+      display: inline-block;
+      padding: 1rem 2.5rem;
+      font-family: 'Source Serif 4', Georgia, serif;
+      font-size: 1rem;
+      font-weight: 400;
+      color: var(--deep-soil);
+      background: var(--ochre);
+      border: none;
+      border-radius: 1px;
+      cursor: pointer;
+      transition: background 0.3s ease, transform 0.15s ease;
+      letter-spacing: 0.02em;
+    }
+
+    .submit-btn:hover { background: #F06AC0; }
+    .submit-btn:active { transform: scale(0.98); }
+    .submit-btn:focus-visible { outline: 2px solid var(--ochre); outline-offset: 3px; }
+
+    /* ====== FOOTER ====== */
+    footer {
+      position: relative;
+      z-index: 5;
+      padding: 3rem 1.5rem;
+      background: var(--deep-soil);
+      border-top: 1px solid rgba(229, 53, 171, 0.1);
+      text-align: center;
+    }
+
+    footer p {
+      font-size: 0.85rem;
+      color: rgba(232, 224, 228, 0.3);
+      line-height: 1.6;
+      font-weight: 300;
+    }
+
+    footer p + p { margin-top: 0.5rem; }
+
+    /* ====== RESPONSIVE ====== */
+    @media (max-width: 640px) {
+      .content-panel { padding: 2rem 1.5rem; }
+      #brief-section { padding: 3rem 1rem; }
+    }
+
+    /* ====== SIGHTING LABELS (CSS2DRenderer) ====== */
+    .sight-label {
+      pointer-events: none;
+      max-width: 220px;
+      padding: 0.65rem 0.8rem;
+      background: rgba(20, 12, 18, 0.72);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      border-left: 2px solid currentColor;
+      font-family: 'Source Serif 4', serif;
+      font-size: 0.82rem;
+      font-style: italic;
+      font-weight: 300;
+      line-height: 1.5;
+      color: rgba(232, 224, 228, 0.9);
+      transition: opacity 0.6s ease;
+      white-space: normal;
+    }
+    .sight-label .sight-place {
+      display: block;
+      margin-top: 0.4rem;
+      font-style: normal;
+      font-size: 0.58rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      opacity: 0.55;
+    }
+    .sight-label.kind-ecological { color: #6b7a64; border-left-color: #6b7a64; }
+    .sight-label.kind-social     { color: #8E9BDD; border-left-color: #8E9BDD; }
+    .sight-label.kind-sensory    { color: #E076DB; border-left-color: #E076DB; }
+    .sight-label.kind-cultural   { color: #D16D54; border-left-color: #D16D54; }
+    .sight-label.kind-water      { color: #7D50BD; border-left-color: #7D50BD; }
+  </style>
+</head>
+<body>
+
+  <canvas id="terrain-canvas"></canvas>
+
+  <div id="scroll-spacer"></div>
+
+  <!-- Overlay panels that appear/fade with scroll -->
+  <div class="content-layer" id="panel-1-layer">
+    <div class="content-panel" id="panel-1">
+      <h1><em>Gathering Intelligences</em></h1>
+      <p>A workshop series by Dr Sarah Barns and Irina Panovich, asking what kinds of intelligence we need to gather &mdash; in both senses of the word &mdash; in a time of increasingly capable AI.</p>
+      <p class="quiet">This space is shaped by the thinking of everyone who enters it.</p>
+    </div>
+  </div>
+
+  <div class="content-layer" id="panel-2-layer">
+    <div class="content-panel" id="panel-2">
+      <p>Intelligence is not exclusively human. The habitats, creatures, waterways, soils, and ecosystems of a place carry their own forms of knowing &mdash; patterns held across deep time that no machine or human mind fully comprehends.</p>
+      <p>A mangrove system reading tidal shifts. Mycelium networks distributing nutrients. Migratory birds navigating by magnetic fields. These are not metaphors. They are intelligences.</p>
+    </div>
+  </div>
+
+  <div class="content-layer" id="panel-3-layer">
+    <div class="content-panel" id="panel-3">
+      <p>This terrain is a collective space. When you submit a brief &mdash; who you are, what you're working on, what question you carry &mdash; it enters an embedding space and shifts the landscape.</p>
+      <p>Where more participants' thinking converges, the terrain rises. Where the space is sparse, it feels like open ground with its own quiet presence. Not empty. Open.</p>
+      <p class="quiet">Contributions shape the terrain, not populate a feed.</p>
+    </div>
+  </div>
+
+  <div class="content-layer" id="panel-4-layer">
+    <div class="content-panel" id="panel-4">
+      <p>The workshop happens on Aboriginal land. Country is not a backdrop. It is an active, intelligent, relational presence. Country-centred methods understand that land, water, sky, and all living systems hold knowledge and agency.</p>
+      <p>The most sophisticated AI system is still a newcomer in a world of ancient, distributed, multi-species intelligence.</p>
+    </div>
+  </div>
+
+  <div class="scroll-indicator" id="scroll-hint">scroll to cross</div>
+
+  <!-- Brief Submission -->
+  <section id="brief-section">
+    <div class="brief-container">
+      <h2>Enter the terrain</h2>
+      <p class="intro-text">Submit a brief to shape the landscape. Your words will be embedded into the collective space &mdash; positioned by conceptual kinship, not alphabetical order. You'll find others thinking near you.</p>
+
+      <form id="brief-form">
+        <div class="form-field">
+          <label for="name">Who are you?</label>
+          <span class="field-hint">Your name and a word or two about your practice.</span>
+          <input type="text" id="name" name="name" placeholder="e.g. Mira, urban ecologist and data artist" required autocomplete="name">
+        </div>
+
+        <div class="form-field">
+          <label for="working-on">What are you working on?</label>
+          <span class="field-hint">The actual thing you're grappling with right now. Be specific.</span>
+          <textarea id="working-on" name="working_on" placeholder="Describe the project, question, or tension that's alive in your work..." required></textarea>
+        </div>
+
+        <div class="form-field">
+          <label for="question">What question are you carrying?</label>
+          <span class="field-hint">Something unresolved. Something that needs more minds on it.</span>
+          <textarea id="question" name="question" placeholder="The question you want to bring into the room..." required></textarea>
+        </div>
+
+        <div class="form-field">
+          <label for="email">Your email</label>
+          <span class="field-hint">So we can send you a link to revisit the terrain before the workshop.</span>
+          <input type="email" id="email" name="email" placeholder="your@email.com" required autocomplete="email">
+        </div>
+
+        <div class="form-field">
+          <label for="push-type">What kind of push do you want?</label>
+          <span class="field-hint">How should this space engage with you?</span>
+          <select id="push-type" name="push_type" required>
+            <option value="" disabled selected>Choose one...</option>
+            <option value="sharpen">Sharpen my question</option>
+            <option value="connect">Connect me to others thinking nearby</option>
+            <option value="challenge">Challenge my assumptions</option>
+            <option value="ground">Help me ground the abstract in practice</option>
+          </select>
+        </div>
+
+        <button type="submit" class="submit-btn">Enter the landscape</button>
+      </form>
+
+      <div id="form-thanks" style="display: none;">
+        <p style="color: var(--ochre); font-size: 1.1rem; margin-bottom: 1rem;">Your brief has entered the terrain.</p>
+        <p style="color: rgba(212, 197, 169, 0.65); line-height: 1.7;">When others submit, the landscape will shift. Where your thinking converges with theirs, ridges will form. Where your question sits alone, the ground will be open &mdash; an invitation, not an absence.</p>
+        <p style="color: rgba(212, 197, 169, 0.45); font-style: italic; margin-top: 1.5rem; font-size: 0.9rem;">We'll send you a link to revisit the terrain before the workshop.</p>
+        <div id="query-section" style="margin-top: 2rem; border-top: 1px solid rgba(229,53,171,0.12); padding-top: 1.8rem;">
+          <p style="color: rgba(232,224,228,0.5); font-size: 0.85rem; margin-bottom: 0.8rem; letter-spacing: 0.04em;">Find resonance — who else is thinking near you?</p>
+          <input type="text" id="query-input" placeholder="Type a word or theme to search the terrain…"
+            style="width:100%; background:rgba(232,224,228,0.05); border:1px solid rgba(229,53,171,0.2); color:var(--sandstone); font-family:inherit; font-size:0.9rem; padding:0.7rem 0.9rem; outline:none; border-radius:1px;">
+          <div id="query-results" style="margin-top:1rem; min-height:2rem;"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Gathering Intelligences &mdash; Sydney &amp; Melbourne, 2026</p>
+    <p>Dr Sarah Barns &amp; Irina Panovich</p>
+    <p style="margin-top: 1rem;">This space runs on energy, water, and extracted minerals. Every page load has a material footprint. The terrain's restraint is a design ethic, not a limitation.</p>
+  </footer>
+
+  <!-- Three.js -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+    // ====== SETUP ======
+    const canvas = document.getElementById('terrain-canvas');
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setClearColor(0x2C2028, 1);
+
+    const labelRenderer = new CSS2DRenderer();
+    const lrEl = labelRenderer.domElement;
+    lrEl.style.position = 'fixed';
+    lrEl.style.top = '0';
+    lrEl.style.left = '0';
+    lrEl.style.pointerEvents = 'none';
+    lrEl.style.zIndex = '1';
+    lrEl.style.overflow = 'hidden';
+    document.body.appendChild(lrEl);
+    labelRenderer.setSize(window.innerWidth, window.innerHeight);
+
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x8A7088, 0.012);
+
+    const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 200);
+    camera.position.set(0, 4, 30);
+    camera.lookAt(0, 0, 0);
+
+    // ====== LIGHTING ======
+    const ambient = new THREE.AmbientLight(0xD4C8D4, 0.55);
+    scene.add(ambient);
+
+    const sun = new THREE.DirectionalLight(0xE8E0E4, 0.75);
+    sun.position.set(5, 10, 8);
+    scene.add(sun);
+
+    const warmFill = new THREE.DirectionalLight(0xE535AB, 0.12);
+    warmFill.position.set(-3, 4, -5);
+    scene.add(warmFill);
+
+    // ====== NOISE ======
+    // Simplex-like noise using sine harmonics (lightweight, no library)
+    function fbm(x, z) {
+      let val = 0;
+      let amp = 1;
+      let freq = 0.08;
+      for (let i = 0; i < 6; i++) {
+        val += amp * (Math.sin(x * freq + i * 1.7) * Math.cos(z * freq + i * 2.3) +
+                      Math.sin(x * freq * 1.3 + z * freq * 0.7 + i * 3.1) * 0.5);
+        amp *= 0.48;
+        freq *= 2.1;
+      }
+      return val;
+    }
+
+    // ====== TERRAIN ======
+    const terrainW = 120;
+    const terrainD = 200;
+    const segW = 200;
+    const segD = 400;
+    const terrainGeo = new THREE.PlaneGeometry(terrainW, terrainD, segW, segD);
+    terrainGeo.rotateX(-Math.PI / 2);
+
+    const positions = terrainGeo.attributes.position;
+    const colors = new Float32Array(positions.count * 3);
+
+    // Colour palette
+    const colLow = new THREE.Color(0x4A7A4A);   // deep green foliage
+    const colMid = new THREE.Color(0x6B8F5E);   // eucalyptus green
+    const colHigh = new THREE.Color(0x9A7A9A);  // warm mauve
+    const colPeak = new THREE.Color(0xD4C8D4);  // soft lavender
+
+    for (let i = 0; i < positions.count; i++) {
+      const x = positions.getX(i);
+      const z = positions.getZ(i);
+
+      // Height from noise
+      let h = fbm(x, z) * 3.5;
+
+      // Add broad undulation
+      h += Math.sin(x * 0.03 + z * 0.02) * 2.5;
+      h += Math.cos(z * 0.015 + x * 0.01) * 1.8;
+
+      // Erosion-like detail: sharpen ridges
+      const ridge = Math.abs(Math.sin(x * 0.05 + z * 0.04) * Math.cos(z * 0.06));
+      h += ridge * 1.5;
+
+      positions.setY(i, h);
+
+      // Colour by height
+      const t = (h + 5) / 12; // normalise roughly
+      let col;
+      if (t < 0.3) col = colLow.clone().lerp(colMid, t / 0.3);
+      else if (t < 0.6) col = colMid.clone().lerp(colHigh, (t - 0.3) / 0.3);
+      else col = colHigh.clone().lerp(colPeak, Math.min((t - 0.6) / 0.4, 1));
+
+      // Slight variation
+      const noise = (Math.sin(x * 0.3 + z * 0.5) * 0.04);
+      colors[i * 3] = col.r + noise;
+      colors[i * 3 + 1] = col.g + noise * 0.7;
+      colors[i * 3 + 2] = col.b + noise * 0.5;
+    }
+
+    terrainGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    terrainGeo.computeVertexNormals();
+
+    const terrainMat = new THREE.MeshLambertMaterial({
+      vertexColors: true,
+      side: THREE.DoubleSide,
+    });
+
+    const terrain = new THREE.Mesh(terrainGeo, terrainMat);
+    scene.add(terrain);
+
+    // ====== CONTOUR LINES ======
+    // Generate contour lines at fixed height intervals
+    function createContourLines() {
+      const group = new THREE.Group();
+      const intervals = [-3, -1.5, 0, 1.5, 3, 4.5, 6];
+
+      intervals.forEach(targetH => {
+        const points = [];
+        const step = 0.8;
+
+        for (let z = -terrainD / 2; z < terrainD / 2; z += step) {
+          for (let x = -terrainW / 2; x < terrainW / 2; x += step) {
+            const h = getTerrainHeight(x, z);
+            const hRight = getTerrainHeight(x + step, z);
+            const hDown = getTerrainHeight(x, z + step);
+
+            // Check if contour crosses this cell edge (horizontal)
+            if ((h - targetH) * (hRight - targetH) < 0) {
+              const t = (targetH - h) / (hRight - h);
+              const px = x + t * step;
+              // Add slight hand-drawn wobble
+              const wobble = (Math.sin(px * 2 + z * 3) * 0.06 + Math.cos(z * 5 + px) * 0.04);
+              points.push(new THREE.Vector3(px + wobble, targetH + 0.08, z + wobble * 0.7));
+            }
+
+            // Check vertical edge
+            if ((h - targetH) * (hDown - targetH) < 0) {
+              const t = (targetH - h) / (hDown - h);
+              const pz = z + t * step;
+              const wobble = (Math.sin(x * 3 + pz * 2) * 0.06 + Math.cos(pz * 4 + x * 2) * 0.04);
+              points.push(new THREE.Vector3(x + wobble * 0.7, targetH + 0.08, pz + wobble));
+            }
+          }
+        }
+
+        if (points.length > 0) {
+          const dotGeo = new THREE.BufferGeometry().setFromPoints(points);
+          const dotMat = new THREE.PointsMaterial({
+            color: 0xE8E0E4,
+            size: 0.12,
+            transparent: true,
+            opacity: 0.2,
+            sizeAttenuation: true,
+          });
+          group.add(new THREE.Points(dotGeo, dotMat));
+        }
+      });
+
+      return group;
+    }
+
+    function getTerrainHeight(x, z) {
+      let h = fbm(x, z) * 3.5;
+      h += Math.sin(x * 0.03 + z * 0.02) * 2.5;
+      h += Math.cos(z * 0.015 + x * 0.01) * 1.8;
+      const ridge = Math.abs(Math.sin(x * 0.05 + z * 0.04) * Math.cos(z * 0.06));
+      h += ridge * 1.5;
+      return h;
+    }
+
+    const contours = createContourLines();
+    scene.add(contours);
+
+    // ====== ATMOSPHERE PARTICLES (dust, spores) ======
+    const particleCount = 300;
+    const particleGeo = new THREE.BufferGeometry();
+    const particlePos = new Float32Array(particleCount * 3);
+    for (let i = 0; i < particleCount; i++) {
+      particlePos[i * 3] = (Math.random() - 0.5) * 60;
+      particlePos[i * 3 + 1] = Math.random() * 8 + 1;
+      particlePos[i * 3 + 2] = (Math.random() - 0.5) * 80;
+    }
+    particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePos, 3));
+    const particleMat = new THREE.PointsMaterial({
+      color: 0xE535AB,
+      size: 0.15,
+      transparent: true,
+      opacity: 0.15,
+      sizeAttenuation: true,
+    });
+    const particles = new THREE.Points(particleGeo, particleMat);
+    scene.add(particles);
+
+    // ====== SCROLL STATE ======
+    let scrollProgress = 0;
+    const totalScroll = document.getElementById('scroll-spacer').offsetHeight - window.innerHeight;
+    const scrollHint = document.getElementById('scroll-hint');
+
+    // Path: camera moves forward through terrain
+    const pathStart = new THREE.Vector3(0, 5.5, 35);
+    const pathEnd = new THREE.Vector3(2, 3.2, -65);
+    const lookStart = new THREE.Vector3(0, 2, 15);
+    const lookEnd = new THREE.Vector3(3, 1, -85);
+
+    // Content panels
+    const panels = [
+      { el: document.getElementById('panel-1'), layer: document.getElementById('panel-1-layer'), enter: -0.05, exit: 0.18 },
+      { el: document.getElementById('panel-2'), layer: document.getElementById('panel-2-layer'), enter: 0.22, exit: 0.40 },
+      { el: document.getElementById('panel-3'), layer: document.getElementById('panel-3-layer'), enter: 0.44, exit: 0.62 },
+      { el: document.getElementById('panel-4'), layer: document.getElementById('panel-4-layer'), enter: 0.66, exit: 0.84 },
+    ];
+
+    window.addEventListener('scroll', () => {
+      const st = window.scrollY;
+      scrollProgress = Math.min(st / totalScroll, 1);
+
+      // Hide scroll hint after some scrolling
+      scrollHint.style.opacity = scrollProgress < 0.05 ? '1' : '0';
+
+      // Panel visibility — clean fade in/out
+      panels.forEach(p => {
+        const margin = 0.03;
+        const visible = scrollProgress >= p.enter + margin && scrollProgress <= p.exit - margin;
+        if (visible) {
+          p.el.classList.add('visible');
+        } else {
+          p.el.classList.remove('visible');
+        }
+      });
+    }, { passive: true });
+
+    // ====== SIGHTINGS IN 3D ======
+    const sightingPositions = [
+      { x: -5,  z: 20  },
+      { x:  7,  z: 10  },
+      { x: -4,  z:  0  },
+      { x:  6,  z: -10 },
+      { x: -6,  z: -20 },
+      { x:  5,  z: -30 },
+      { x: -3,  z: -40 },
+      { x:  4,  z: -50 },
+    ];
+
+    const sightingLabels = [];
+
+    function addSightingLabel(data, pos) {
+      const y = getTerrainHeight(pos.x, pos.z) + 2.2;
+      const div = document.createElement('div');
+      div.className = `sight-label kind-${data.kind}`;
+      const snippet = data.text.length > 120 ? data.text.slice(0, 120) + '\u2026' : data.text;
+      div.innerHTML = `${snippet}<span class="sight-place">${data.place}</span>`;
+      div.style.opacity = '0';
+      const label = new CSS2DObject(div);
+      const anchor = new THREE.Object3D();
+      anchor.position.set(pos.x, y, pos.z);
+      anchor.add(label);
+      scene.add(anchor);
+      sightingLabels.push({ anchor, div });
+    }
+
+    const demoSightings = [
+      { kind: 'ecological', text: 'A fig tree on the corner of our street has been dropping fruit for three weeks. Every morning, a dozen lorikeets arrive at exactly 6:14am. The council wants to remove it.', place: 'Marrickville, Sydney' },
+      { kind: 'social',     text: 'The drain at the end of our laneway fills with tadpoles every November. Kids from the flats know. Nobody else does.', place: 'Footscray, Melbourne' },
+      { kind: 'social',     text: 'There\u2019s an older woman who walks the same path along the creek every single day. She picks up rubbish. She knows every dog\u2019s name. She is the most sophisticated monitoring system in the catchment.', place: 'Toongabbie Creek' },
+      { kind: 'sensory',    text: 'After the rain, the smell of eucalyptus is so strong near the reserve you can navigate by it. I wonder what data that is.', place: 'Blue Mountains' },
+      { kind: 'ecological', text: 'A banksia on our verge is flowering out of season. The bees have noticed. I have noticed the bees noticing.', place: 'Thirroul' },
+      { kind: 'cultural',   text: 'My neighbour saves her washing water for the lemon tree. She has done this for thirty years. It is the best lemon tree on the street and everyone knows it.', place: 'Canterbury, Sydney' },
+      { kind: 'ecological', text: 'I saw a regent honeyeater. In my backyard. I didn\u2019t know what it was until I looked it up. Then I understood what I was looking at \u2014 something almost gone, still here.', place: 'Cessnock, Hunter Valley' },
+      { kind: 'water',      text: 'The stormwater channel behind the school has frogs in it again this year. Three years ago there were none. Something changed and nobody recorded what.', place: 'Wollongong' },
+    ];
+
+    demoSightings.forEach((s, i) => addSightingLabel(s, sightingPositions[i]));
+
+    // Try API for live sightings (positions 8+)
+    fetch('/api/sightings?status=approved')
+      .then(r => r.json())
+      .then(({ sightings }) => {
+        sightings.slice(0, 4).forEach((s, i) => {
+          const pos = sightingPositions[i % sightingPositions.length];
+          addSightingLabel({ kind: s.kind, text: s.text, place: s.place }, pos);
+        });
+      })
+      .catch(() => {});
+
+    // ====== BRIEF MARKERS (state declared before render loop) ======
+    const briefPositions = {
+      sharpen:   { x: -14, z: -8 },
+      connect:   { x:   4, z: -26 },
+      challenge: { x:  18, z: -44 },
+      ground:    { x:  -7, z:  4 },
+    };
+    const activeMarkers = [];
+
+    // ====== RENDER LOOP ======
+    function animate() {
+      requestAnimationFrame(animate);
+
+      // Camera position along path
+      camera.position.lerpVectors(pathStart, pathEnd, scrollProgress);
+      const lookTarget = new THREE.Vector3().lerpVectors(lookStart, lookEnd, scrollProgress);
+
+      // Gentle sway
+      const time = performance.now() * 0.0003;
+      camera.position.x += Math.sin(time) * 0.15;
+      camera.position.y += Math.cos(time * 0.7) * 0.05;
+
+      camera.lookAt(lookTarget);
+
+      // Particle drift
+      const pPos = particles.geometry.attributes.position;
+      for (let i = 0; i < particleCount; i++) {
+        pPos.array[i * 3] += Math.sin(time + i * 0.1) * 0.003;
+        pPos.array[i * 3 + 1] += Math.cos(time * 0.5 + i * 0.2) * 0.002;
+        // Wrap around camera
+        if (pPos.array[i * 3 + 2] < camera.position.z - 40) {
+          pPos.array[i * 3 + 2] = camera.position.z + 40;
+        }
+      }
+      pPos.needsUpdate = true;
+
+      // Update fog based on depth
+      const fogDensity = 0.01 + scrollProgress * 0.008;
+      scene.fog.density = fogDensity;
+
+      // Animate brief markers
+      const now = performance.now();
+      activeMarkers.forEach(m => {
+        const age = (now - m.startTime) / 1000;
+        const introScale = Math.min(1, age / 1.2);
+        const pulse = 1 + Math.sin(now * 0.002) * 0.08;
+        m.core.scale.setScalar(introScale * pulse);
+        m.halo.scale.setScalar(introScale * (1 + Math.sin(now * 0.0015) * 0.15));
+        m.halo.material.opacity = 0.08 + Math.sin(now * 0.0015) * 0.04;
+      });
+
+      // Distance-based sighting label opacity
+      sightingLabels.forEach(({ anchor, div }) => {
+        const dist = camera.position.distanceTo(anchor.position);
+        const opacity = dist < 4  ? 0
+          : dist < 9  ? (dist - 4) / 5
+          : dist < 20 ? 1
+          : dist < 28 ? (28 - dist) / 8
+          : 0;
+        div.style.opacity = opacity.toFixed(3);
+      });
+
+      renderer.render(scene, camera);
+      labelRenderer.render(scene, camera);
+    }
+
+    animate();
+
+    // ====== RESIZE ======
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      labelRenderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // Trigger initial scroll event
+    window.dispatchEvent(new Event('scroll'));
+
+    // ====== BRIEF MARKERS ======
+    function spawnBriefMarker(pushType) {
+      const pos = briefPositions[pushType] || briefPositions.connect;
+      const y = getTerrainHeight(pos.x, pos.z) + 0.45;
+
+      // Glowing core sphere
+      const coreGeo = new THREE.SphereGeometry(0.28, 10, 7);
+      const coreMat = new THREE.MeshBasicMaterial({ color: 0xE535AB, transparent: true, opacity: 0.9 });
+      const core = new THREE.Mesh(coreGeo, coreMat);
+      core.position.set(pos.x, y, pos.z);
+      core.scale.setScalar(0);
+      scene.add(core);
+
+      // Soft halo
+      const haloGeo = new THREE.SphereGeometry(0.7, 10, 7);
+      const haloMat = new THREE.MeshBasicMaterial({ color: 0xE535AB, transparent: true, opacity: 0.12, side: THREE.BackSide });
+      const halo = new THREE.Mesh(haloGeo, haloMat);
+      halo.position.copy(core.position);
+      scene.add(halo);
+
+      const startTime = performance.now();
+      activeMarkers.push({ core, halo, startTime });
+    }
+
+
+    // ====== FORM SUBMISSION ======
+    const briefForm = document.getElementById('brief-form');
+    briefForm.addEventListener('submit', e => {
+      e.preventDefault();
+      const brief = {
+        name: document.getElementById('name').value.trim(),
+        working_on: document.getElementById('working-on').value.trim(),
+        question: document.getElementById('question').value.trim(),
+        email: document.getElementById('email').value.trim(),
+        push_type: document.getElementById('push-type').value,
+        submitted_at: new Date().toISOString(),
+      };
+      localStorage.setItem('gi_brief', JSON.stringify(brief));
+
+      briefForm.style.display = 'none';
+      document.getElementById('form-thanks').style.display = 'block';
+
+      // Spawn terrain marker
+      spawnBriefMarker(brief.push_type);
+
+      // Add their question as a floating sighting label
+      addSightingLabel(
+        { kind: 'social', text: brief.question, place: brief.name },
+        briefPositions[brief.push_type]
+      );
+    });
+
+    // ====== RETURNING PARTICIPANT ======
+    (function checkReturning() {
+      const saved = localStorage.getItem('gi_brief');
+      if (!saved) return;
+      try {
+        const brief = JSON.parse(saved);
+        const panel1 = document.getElementById('panel-1');
+        const h1 = panel1 && panel1.querySelector('h1');
+        if (h1) {
+          h1.innerHTML = `You've already entered the landscape.<br><em>Scroll to find where your thinking landed.</em>`;
+        }
+        // Show the existing marker on load
+        if (brief.push_type) spawnBriefMarker(brief.push_type);
+        // Pre-hide the form, show thanks if brief was submitted this session
+        // (Don't auto-hide on reload — let them re-read the form)
+      } catch (_) {}
+    })();
+
+    // ====== QUERY INPUT ======
+    const sampleBriefs = [
+      { name: 'Yara, water systems designer', question: 'How do we design for water memory in cities that keep flooding?', push_type: 'ground' },
+      { name: 'Seb, speculative fiction writer', question: 'What stories do we need to tell about AI that aren\'t about control?', push_type: 'sharpen' },
+      { name: 'Anika, urban ecologist', question: 'Can ecological intelligence be institutionalised without being extracted?', push_type: 'challenge' },
+      { name: 'Louis, civic technologist', question: 'Who gets to decide when a city\'s data is good enough to act on?', push_type: 'connect' },
+      { name: 'Priya, Indigenous data sovereignty researcher', question: 'What would it mean for Country itself to be a data subject?', push_type: 'challenge' },
+      { name: 'Tom, community land trust organiser', question: 'How do we make collective ownership legible to people who\'ve never experienced it?', push_type: 'connect' },
+    ];
+
+    const queryInput = document.getElementById('query-input');
+    const queryResults = document.getElementById('query-results');
+
+    if (queryInput) {
+      queryInput.addEventListener('input', () => {
+        const q = queryInput.value.trim().toLowerCase();
+        queryResults.innerHTML = '';
+        if (q.length < 3) return;
+
+        const matches = sampleBriefs.filter(b =>
+          b.name.toLowerCase().includes(q) ||
+          b.question.toLowerCase().includes(q)
+        );
+
+        if (matches.length === 0) {
+          queryResults.innerHTML = `<p style="color:rgba(232,224,228,0.3); font-size:0.82rem; font-style:italic;">No one thinking near that yet. You may be the first.</p>`;
+          return;
+        }
+
+        matches.forEach(m => {
+          const div = document.createElement('div');
+          div.style.cssText = 'margin-bottom:0.8rem; padding:0.7rem 0.9rem; border-left:2px solid rgba(229,53,171,0.3); cursor:pointer; transition: border-color 0.2s ease;';
+          div.innerHTML = `<div style="color:rgba(232,224,228,0.5); font-size:0.65rem; letter-spacing:0.1em; text-transform:uppercase; margin-bottom:0.3rem;">${m.name}</div>
+            <div style="color:rgba(232,224,228,0.75); font-size:0.88rem; line-height:1.5; font-style:italic;">"${m.question}"</div>`;
+          div.addEventListener('mouseenter', () => div.style.borderLeftColor = 'rgba(229,53,171,0.8)');
+          div.addEventListener('mouseleave', () => div.style.borderLeftColor = 'rgba(229,53,171,0.3)');
+          div.addEventListener('click', () => {
+            // Move camera toward that brief's terrain position
+            const targetPos = briefPositions[m.push_type] || briefPositions.connect;
+            const targetZ = targetPos.z;
+            const frac = (targetZ - pathStart.z) / (pathEnd.z - pathStart.z);
+            const targetScroll = Math.max(0, Math.min(1, frac)) * (totalScroll);
+            window.scrollTo({ top: targetScroll, behavior: 'smooth' });
+          });
+          queryResults.appendChild(div);
+        });
+      });
+    }
+  </script>
+
+</body>
+</html>
