@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Civic.Interplay — Terrain</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300&family=Spectral:ital,wght@0,300;1,300&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #2a1f24;
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+    font-family: 'Spectral', Georgia, serif;
+    cursor: grab;
+  }
+
+  body.dragging { cursor: grabbing; }
+
+  #canvas-container {
+    position: fixed;
+    inset: 0;
+  }
+
+  canvas { display: block; }
+
+  /* UI overlay */
+  .ui-layer {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  .wordmark {
+    position: absolute;
+    top: 1.5rem;
+    left: 2rem;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 13px;
+    font-weight: 300;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(228,218,218,0.55);
+  }
+
+  .wordmark em {
+    font-style: normal;
+    color: #c8286e;
+  }
+
+  .hint {
+    position: absolute;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Spectral', Georgia, serif;
+    font-size: 11px;
+    font-weight: 300;
+    font-style: italic;
+    color: rgba(228,218,218,0.25);
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+
+  .brief-count {
+    position: absolute;
+    top: 1.5rem;
+    right: 2rem;
+    text-align: right;
+  }
+
+  .brief-count .n {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 28px;
+    font-weight: 300;
+    color: rgba(228,218,218,0.5);
+    display: block;
+    line-height: 1;
+  }
+
+  .brief-count .label {
+    font-family: 'Spectral', Georgia, serif;
+    font-size: 10px;
+    font-weight: 300;
+    font-style: italic;
+    color: rgba(228,218,218,0.25);
+    letter-spacing: 0.05em;
+  }
+
+  /* Brief card tooltip */
+  #tooltip {
+    position: fixed;
+    z-index: 20;
+    pointer-events: none;
+    display: none;
+    max-width: 260px;
+    min-width: 220px;
+  }
+
+  .tooltip-inner {
+    background: rgba(240,234,236,0.97);
+    border: 0.5px solid rgba(100,70,80,0.15);
+    padding: 1rem 1.15rem 0.9rem;
+    transition: border-color 0.2s;
+  }
+
+  .tooltip-cluster-bar {
+    height: 2px;
+    width: 100%;
+    margin-bottom: 0.75rem;
+    opacity: 0.6;
+  }
+
+  .tooltip-name {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 10px;
+    font-weight: 400;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(60,35,45,0.45);
+    margin-bottom: 0.4rem;
+  }
+
+  .tooltip-q {
+    font-family: 'Spectral', Georgia, serif;
+    font-size: 13px;
+    font-weight: 300;
+    font-style: italic;
+    color: rgba(60,35,45,0.72);
+    line-height: 1.55;
+  }
+
+  .tooltip-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 0.7rem;
+  }
+
+  .tooltip-tag {
+    font-size: 10px;
+    font-family: 'Spectral', Georgia, serif;
+    font-weight: 300;
+    letter-spacing: 0.05em;
+    color: rgba(60,35,45,0.45);
+    border: 0.5px solid rgba(100,70,80,0.2);
+    padding: 2px 7px;
+    background: rgba(255,255,255,0.4);
+  }
+
+  .tooltip-tag.accent-magenta { color: #c8286e; border-color: rgba(200,40,110,0.28); background: rgba(200,40,110,0.04); }
+  .tooltip-tag.accent-sage { color: #4a7a56; border-color: rgba(74,122,86,0.28); background: rgba(74,122,86,0.04); }
+  .tooltip-tag.accent-mauve { color: #7a4e5e; border-color: rgba(122,78,94,0.28); background: rgba(122,78,94,0.04); }
+
+  /* Add brief button */
+  .add-btn {
+    position: absolute;
+    bottom: 2rem;
+    right: 2rem;
+    pointer-events: all;
+    font-family: 'Spectral', Georgia, serif;
+    font-size: 11px;
+    font-weight: 300;
+    letter-spacing: 0.1em;
+    color: #c8286e;
+    border: 0.5px solid rgba(200,40,110,0.4);
+    padding: 10px 18px;
+    cursor: pointer;
+    background: rgba(42,31,36,0.7);
+    transition: all 0.25s;
+  }
+
+  .add-btn:hover { background: rgba(200,40,110,0.1); border-color: #c8286e; }
+  .add-btn:disabled { opacity: 0.3; cursor: default; }
+
+  /* Grain overlay */
+  .grain {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 5;
+    opacity: 0.3;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.08'/%3E%3C/svg%3E");
+  }
+
+  /* ─── Form overlay ──────────────────────────────────────────────────── */
+  .form-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(42,31,36,0.6);
+    backdrop-filter: blur(4px);
+  }
+
+  .form-overlay.open { display: flex; }
+
+  .form-panel {
+    background: rgba(240,234,236,0.97);
+    border: 0.5px solid rgba(100,70,80,0.15);
+    width: 100%;
+    max-width: 420px;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 2rem 2rem 1.5rem;
+  }
+
+  @media (max-width: 480px) {
+    .form-panel { max-width: 100%; max-height: 100vh; padding: 1.5rem; }
+  }
+
+  .form-title {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 11px;
+    font-weight: 300;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(60,35,45,0.45);
+    margin-bottom: 1.5rem;
+  }
+
+  .form-group {
+    margin-bottom: 1.2rem;
+  }
+
+  .form-group label {
+    display: block;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 10px;
+    font-weight: 300;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(60,35,45,0.5);
+    margin-bottom: 0.4rem;
+  }
+
+  .form-group input,
+  .form-group textarea,
+  .form-group select {
+    width: 100%;
+    font-family: 'Spectral', Georgia, serif;
+    font-size: 13px;
+    font-weight: 300;
+    color: rgba(60,35,45,0.8);
+    background: transparent;
+    border: 0.5px solid rgba(100,70,80,0.2);
+    padding: 0.55rem 0.7rem;
+    outline: none;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+  }
+
+  .form-group input:focus,
+  .form-group textarea:focus,
+  .form-group select:focus {
+    border-color: rgba(200,40,110,0.4);
+  }
+
+  .form-group textarea {
+    resize: vertical;
+    min-height: 60px;
+    line-height: 1.55;
+  }
+
+  .form-group input::placeholder,
+  .form-group textarea::placeholder {
+    font-style: italic;
+    color: rgba(60,35,45,0.3);
+  }
+
+  /* Tag chips in form */
+  .tag-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 0.5rem;
+  }
+
+  .tag-chip {
+    font-size: 10px;
+    font-family: 'Spectral', Georgia, serif;
+    font-weight: 300;
+    letter-spacing: 0.05em;
+    color: rgba(60,35,45,0.45);
+    border: 0.5px solid rgba(100,70,80,0.2);
+    padding: 3px 8px;
+    cursor: pointer;
+    background: transparent;
+    transition: all 0.2s;
+  }
+
+  .tag-chip.selected {
+    color: #c8286e;
+    border-color: rgba(200,40,110,0.4);
+    background: rgba(200,40,110,0.06);
+  }
+
+  .form-footer {
+    font-family: 'Spectral', Georgia, serif;
+    font-size: 10px;
+    font-weight: 300;
+    font-style: italic;
+    color: rgba(60,35,45,0.35);
+    margin-top: 1rem;
+    line-height: 1.5;
+  }
+
+  .form-actions {
+    display: flex;
+    gap: 0.8rem;
+    margin-top: 1.2rem;
+  }
+
+  .form-submit {
+    font-family: 'Spectral', Georgia, serif;
+    font-size: 11px;
+    font-weight: 300;
+    letter-spacing: 0.1em;
+    color: #c8286e;
+    border: 0.5px solid rgba(200,40,110,0.4);
+    padding: 9px 20px;
+    cursor: pointer;
+    background: transparent;
+    transition: all 0.25s;
+  }
+
+  .form-submit:hover { background: rgba(200,40,110,0.08); }
+
+  .form-submit:disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
+
+  .form-submit.submitting {
+    animation: pulse-border 1.2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-border {
+    0%, 100% { border-color: rgba(200,40,110,0.4); }
+    50% { border-color: rgba(200,40,110,0.8); }
+  }
+
+  .form-cancel {
+    font-family: 'Spectral', Georgia, serif;
+    font-size: 11px;
+    font-weight: 300;
+    letter-spacing: 0.08em;
+    color: rgba(60,35,45,0.4);
+    border: 0.5px solid rgba(100,70,80,0.15);
+    padding: 9px 16px;
+    cursor: pointer;
+    background: transparent;
+  }
+
+  .form-cancel:hover { border-color: rgba(100,70,80,0.3); }
+
+  /* ─── Tag filter panel ──────────────────────────────────────────────── */
+  .filter-panel {
+    position: absolute;
+    bottom: 2rem;
+    left: 2rem;
+    pointer-events: all;
+  }
+
+  .filter-label {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 9px;
+    font-weight: 300;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(228,218,218,0.3);
+    margin-bottom: 0.4rem;
+  }
+
+  .filter-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    max-width: 280px;
+  }
+
+  .filter-chip {
+    font-size: 9px;
+    font-family: 'Spectral', Georgia, serif;
+    font-weight: 300;
+    letter-spacing: 0.04em;
+    color: rgba(228,218,218,0.35);
+    border: 0.5px solid rgba(228,218,218,0.12);
+    padding: 2px 7px;
+    cursor: pointer;
+    background: transparent;
+    transition: all 0.2s;
+  }
+
+  .filter-chip:hover {
+    color: rgba(228,218,218,0.55);
+    border-color: rgba(228,218,218,0.25);
+  }
+
+  .filter-chip.active {
+    color: #c8286e;
+    border-color: rgba(200,40,110,0.4);
+    background: rgba(200,40,110,0.08);
+  }
+
+  /* Empty state */
+  .empty-state {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    pointer-events: none;
+  }
+
+  .empty-state p {
+    font-family: 'Spectral', Georgia, serif;
+    font-size: 14px;
+    font-weight: 300;
+    font-style: italic;
+    color: rgba(228,218,218,0.25);
+    line-height: 1.7;
+  }
+</style>
+</head>
+<body>
+
+<div id="canvas-container"></div>
+
+<div class="grain"></div>
+
+<div class="ui-layer">
+  <div class="wordmark">Civic<em>.</em>Interplay</div>
+  <div class="brief-count">
+    <span class="n" id="count-n">—</span>
+    <span class="label">briefs in the landscape</span>
+  </div>
+  <div class="hint">drag to traverse · hover to read</div>
+
+  <!-- Tag filter -->
+  <div class="filter-panel" id="filter-panel" style="display:none;">
+    <div class="filter-label">filter by lens</div>
+    <div class="filter-chips" id="filter-chips"></div>
+  </div>
+
+  <button class="add-btn" id="add-btn">add your brief →</button>
+</div>
+
+<div id="tooltip">
+  <div class="tooltip-inner" id="tt-inner">
+    <div class="tooltip-cluster-bar" id="tt-bar"></div>
+    <div class="tooltip-name" id="tt-name"></div>
+    <div class="tooltip-q" id="tt-q"></div>
+    <div class="tooltip-tags" id="tt-tags"></div>
+  </div>
+</div>
+
+<!-- ─── Submission form ─────────────────────────────────────────────── -->
+<div class="form-overlay" id="form-overlay">
+  <div class="form-panel">
+    <div class="form-title">Add your brief to the landscape</div>
+
+    <form id="brief-form" autocomplete="off">
+      <div class="form-group">
+        <label for="f-name">Your name (optional)</label>
+        <input type="text" id="f-name" placeholder="How you'd like to appear in the terrain" />
+      </div>
+
+      <div class="form-group">
+        <label for="f-practice">Practice area</label>
+        <input type="text" id="f-practice" placeholder="Design, ecology, governance, care work…" />
+      </div>
+
+      <div class="form-group">
+        <label for="f-working">What you're working on</label>
+        <textarea id="f-working" rows="2" placeholder="What brings you to this gathering"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="f-question">Question you're carrying *</label>
+        <textarea id="f-question" rows="3" placeholder="The question that won't leave you alone"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="f-push">What push do you want?</label>
+        <select id="f-push">
+          <option value="">— choose —</option>
+          <option value="challenge me">challenge me</option>
+          <option value="connect me">connect me</option>
+          <option value="leave me space">leave me space</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Tags</label>
+        <div class="tag-chips" id="form-tags"></div>
+      </div>
+
+      <div class="form-footer">
+        Your brief enters the landscape as written. It cannot be edited after submission.
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="form-submit" id="form-submit">enter the landscape →</button>
+        <button type="button" class="form-cancel" id="form-cancel">cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script>
+// ─── State ──────────────────────────────────────────────────────────────────
+let BRIEFS = [];
+let ALL_TAGS = [];
+let selectedFormTags = new Set();
+let activeFilterTags = new Set();
+let hasSubmitted = localStorage.getItem('ci_submitted') === 'true';
+
+// Synthetic fallback data (used when API unavailable)
+const FALLBACK_BRIEFS = [
+  { id:1, x:-0.35, y: 0.28, participant_name:'Lucie Bui', question_im_carrying:'How do we design systems that listen the way a long-term resident does — slowly, across seasons?', tags:['country','water','more-than-human'] },
+  { id:2, x:-0.28, y: 0.22, participant_name:'Yuin / Marcus Webb', question_im_carrying:'What gets lost when we turn community knowledge into extractable variables?', tags:['data sovereignty','community practice'] },
+  { id:3, x:-0.38, y: 0.32, participant_name:'Sarah Chen', question_im_carrying:'Can a map ever honour what it fails to capture?', tags:['more-than-human','storytelling'] },
+  { id:4, x:-0.22, y: 0.25, participant_name:'Dev Anand', question_im_carrying:'Who owns the pattern when the pattern emerges from community?', tags:['data sovereignty','governance'] },
+  { id:5, x:-0.31, y: 0.18, participant_name:'Marta Osei', question_im_carrying:'What would it mean to design infrastructure that grieves?', tags:['more-than-human','urban systems'] },
+  { id:6, x: 0.25, y:-0.20, participant_name:'Tom Nguyen', question_im_carrying:'How do we build civic tools that don\'t require users to already be powerful?', tags:['civic infrastructure','community practice'] },
+  { id:7, x: 0.32, y:-0.28, participant_name:'Aroha Ngata', question_im_carrying:'When AI speaks Country, who is speaking?', tags:['country','data sovereignty'] },
+  { id:8, x: 0.20, y:-0.15, participant_name:'Priya Mehta', question_im_carrying:'Is there a form of collective intelligence that resists quantification?', tags:['collective intelligence','ecology'] },
+  { id:9, x: 0.38, y:-0.22, participant_name:'James Okafor', question_im_carrying:'What does a city know that its planners don\'t?', tags:['urban systems','governance'] },
+  { id:10,x: 0.28, y:-0.32, participant_name:'Clara Russo', question_im_carrying:'How do we make AI legible to the people it affects most?', tags:['governance','technology critique'] },
+  { id:11,x: 0.05, y: 0.38, participant_name:'Wiremu Tane', question_im_carrying:'Can data sovereignty be practised without land sovereignty?', tags:['country','data sovereignty'] },
+  { id:12,x:-0.05, y: 0.42, participant_name:'Aiko Tanaka', question_im_carrying:'What intelligences are we already ignoring?', tags:['more-than-human','ecology'] },
+  { id:13,x: 0.10, y: 0.35, participant_name:'Ben Hartley', question_im_carrying:'How do we slow AI down without slowing justice down?', tags:['governance','technology critique'] },
+  { id:14,x:-0.55, y:-0.10, participant_name:'Natalie Cross', question_im_carrying:'What would a mycelium-modelled data network look like?', tags:['ecology','more-than-human'] },
+  { id:15,x: 0.48, y: 0.12, participant_name:'Ravi Kumar', question_im_carrying:'Where does the river think the city begins?', tags:['water','country'] },
+  { id:16,x:-0.70, y: 0.50, participant_name:'A. Park', question_im_carrying:'What if the error is the signal?', tags:['technology critique'] },
+  { id:17,x: 0.65, y:-0.55, participant_name:'F. Osei', question_im_carrying:'Who decides what counts as knowing?', tags:['governance'] },
+  { id:18,x:-0.15, y:-0.60, participant_name:'L. Vargas', question_im_carrying:'Can care be a design constraint?', tags:['community practice'] },
+  { id:19,x: 0.60, y: 0.45, participant_name:'M. Singh', question_im_carrying:'What does the soil remember?', tags:['ecology','country'] },
+  { id:20,x:-0.65, y:-0.45, participant_name:'C. Adeyemi', question_im_carrying:'How do you map what hasn\'t happened yet?', tags:['storytelling'] },
+];
+
+// ─── Simplex noise ──────────────────────────────────────────────────────────
+function Alea(seed) {
+  let s0,s1,s2,c;
+  function mash(d){d=d.toString();for(let n=0xefc8249d,i=0;i<d.length;i++){n+=d.charCodeAt(i);let h=0.02519603282416938*n;n=h>>>0;h-=n;h*=n;n=h>>>0;h-=n;n+=h*0x100000000}return(n>>>0)*2.3283064365386963e-10}
+  s0=mash(' ');s1=mash(' ');s2=mash(' ');c=1;
+  s0-=mash(seed);if(s0<0)s0+=1;
+  s1-=mash(seed);if(s1<0)s1+=1;
+  s2-=mash(seed);if(s2<0)s2+=1;
+  return function(){let t=2091639*s0+c*2.3283064365386963e-10;s0=s1;s1=s2;return s2=t-(c=t|0)};
+}
+
+const SimplexNoise = (function(){
+  const G2=0.2113248654051871;
+  const p=[151,160,137,91,90,15,131,13,201,95,96,53,194,233,7,225,140,36,103,30,69,142,8,99,37,240,21,10,23,190,6,148,247,120,234,75,0,26,197,62,94,252,219,203,117,35,11,32,57,177,33,88,237,149,56,87,174,20,125,136,171,168,68,175,74,165,71,134,139,48,27,166,77,146,158,231,83,111,229,122,60,211,133,230,220,105,92,41,55,46,245,40,244,102,143,54,65,25,63,161,1,216,80,73,209,76,132,187,208,89,18,169,200,196,135,130,116,188,159,86,164,100,109,198,173,186,3,64,52,217,226,250,124,123,5,202,38,147,118,126,255,82,85,212,207,206,59,227,47,16,58,17,182,189,28,42,223,183,170,213,119,248,152,2,44,154,163,70,221,153,101,155,167,43,172,9,129,22,39,253,19,98,108,110,79,113,224,232,178,185,112,104,218,246,97,228,251,34,242,193,238,210,144,12,191,179,162,241,81,51,145,235,249,14,239,107,49,192,214,31,181,199,106,157,184,84,204,176,115,121,50,45,127,4,150,254,138,236,205,93,222,114,67,29,24,72,243,141,128,195,78,66,215,61,156,180];
+  const perm=new Uint8Array(512),permMod12=new Uint8Array(512);
+  for(let i=0;i<512;i++){perm[i]=p[i&255];permMod12[i]=perm[i]%12}
+  const grad3=[[1,1,0],[-1,1,0],[1,-1,0],[-1,-1,0],[1,0,1],[-1,0,1],[1,0,-1],[-1,0,-1],[0,1,1],[0,-1,1],[0,1,-1],[0,-1,-1]];
+  function dot2(g,x,y){return g[0]*x+g[1]*y}
+  return {noise2D:function(xin,yin){
+    let n0,n1,n2;
+    const s=(xin+yin)*0.3660254037844386;
+    const i=Math.floor(xin+s),j=Math.floor(yin+s);
+    const t=(i+j)*G2;
+    const X0=i-t,Y0=j-t,x0=xin-X0,y0=yin-Y0;
+    let i1,j1;if(x0>y0){i1=1;j1=0}else{i1=0;j1=1}
+    const x1=x0-i1+G2,y1=y0-j1+G2,x2=x0-1+2*G2,y2=y0-1+2*G2;
+    const ii=i&255,jj=j&255;
+    const gi0=permMod12[ii+perm[jj]],gi1=permMod12[ii+i1+perm[jj+j1]],gi2=permMod12[ii+1+perm[jj+1]];
+    let t0=0.5-x0*x0-y0*y0;if(t0<0){n0=0}else{t0*=t0;n0=t0*t0*dot2(grad3[gi0],x0,y0)}
+    let t1=0.5-x1*x1-y1*y1;if(t1<0){n1=0}else{t1*=t1;n1=t1*t1*dot2(grad3[gi1],x1,y1)}
+    let t2=0.5-x2*x2-y2*y2;if(t2<0){n2=0}else{t2*=t2;n2=t2*t2*dot2(grad3[gi2],x2,y2)}
+    return 70*(n0+n1+n2);
+  }};
+})();
+
+// ─── KDE heightmap ──────────────────────────────────────────────────────────
+function buildHeightmap(size, briefs, bandwidth=0.18, noiseScale=0.35, noiseAmp=0.15) {
+  const map = new Float32Array(size * size);
+  const half = size / 2;
+
+  for (let row = 0; row < size; row++) {
+    for (let col = 0; col < size; col++) {
+      const wx = (col - half) / half;
+      const wy = (row - half) / half;
+      let density = 0;
+      for (const b of briefs) {
+        const dx = wx - b.x, dy = wy - b.y;
+        const d2 = dx*dx + dy*dy;
+        density += Math.exp(-d2 / (2 * bandwidth * bandwidth));
+      }
+      map[row * size + col] = density;
+    }
+  }
+
+  let max = 0;
+  for (let i = 0; i < map.length; i++) if (map[i] > max) max = map[i];
+  if (max > 0) for (let i = 0; i < map.length; i++) map[i] /= max;
+
+  for (let row = 0; row < size; row++) {
+    for (let col = 0; col < size; col++) {
+      const nx = (col / size) * noiseScale * 8;
+      const ny = (row / size) * noiseScale * 8;
+      const n = (SimplexNoise.noise2D(nx, ny) * 0.5 + 0.5)
+              + (SimplexNoise.noise2D(nx*2.1, ny*2.1) * 0.5 + 0.5) * 0.5
+              + (SimplexNoise.noise2D(nx*4.3, ny*4.3) * 0.5 + 0.5) * 0.25;
+      const nNorm = n / 1.75;
+      const i = row * size + col;
+      map[i] = map[i] * 0.75 + nNorm * noiseAmp + map[i] * nNorm * 0.15;
+    }
+  }
+
+  let max2 = 0;
+  for (let i = 0; i < map.length; i++) if (map[i] > max2) max2 = map[i];
+  if (max2 > 0) for (let i = 0; i < map.length; i++) map[i] /= max2;
+
+  return map;
+}
+
+// ─── Setup Three.js ─────────────────────────────────────────────────────────
+const container = document.getElementById('canvas-container');
+const W = window.innerWidth, H = window.innerHeight;
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(W, H);
+renderer.setClearColor(0x2a1f24);
+container.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0x3a2830, 6, 22);
+
+const camera = new THREE.PerspectiveCamera(55, W/H, 0.1, 100);
+camera.position.set(0, 3.5, 7);
+camera.lookAt(0, 0, 0);
+
+// ─── Terrain constants ──────────────────────────────────────────────────────
+const SEG = 180;
+const TERRAIN_SIZE = 16;
+const HEIGHT_SCALE = 2.2;
+
+// Scene objects we'll rebuild
+let terrainMesh = null;
+let contourGroup = null;
+let pointsMesh = null;
+let briefData = [];
+
+// ─── Cluster logic ──────────────────────────────────────────────────────────
+function clusterInfo(tags) {
+  if (tags.some(t => ['data sovereignty','country','governance'].includes(t)))
+    return { rgb: [0.78, 0.16, 0.43], hex: '#c8286e', name: 'magenta', label: 'data & sovereignty' };
+  if (tags.some(t => ['ecology','water','more-than-human','storytelling'].includes(t)))
+    return { rgb: [0.72, 0.63, 0.67], hex: '#9a6678', name: 'mauve', label: 'more-than-human' };
+  return { rgb: [0.43, 0.55, 0.46], hex: '#4a7a56', name: 'sage', label: 'civic & collective' };
+}
+
+function tagAccentClass(tag, cluster) {
+  if (['data sovereignty','country','governance'].includes(tag)) return 'accent-magenta';
+  if (['ecology','water','more-than-human','storytelling'].includes(tag)) return 'accent-mauve';
+  if (['civic infrastructure','community practice','collective intelligence','urban systems'].includes(tag)) return 'accent-sage';
+  return cluster.name === 'magenta' ? 'accent-magenta' : cluster.name === 'sage' ? 'accent-sage' : 'accent-mauve';
+}
+
+// ─── Build / rebuild terrain from BRIEFS ────────────────────────────────────
+function rebuildTerrain() {
+  // Filter briefs by active tag filter
+  let activeBriefs = BRIEFS;
+  if (activeFilterTags.size > 0) {
+    activeBriefs = BRIEFS.filter(b =>
+      b.tags.some(t => activeFilterTags.has(t))
+    );
+  }
+
+  // Build heightmap from active briefs (for terrain shape)
+  const heightmap = buildHeightmap(SEG + 1, activeBriefs.length > 0 ? activeBriefs : BRIEFS);
+
+  // Remove old terrain
+  if (terrainMesh) { scene.remove(terrainMesh); terrainMesh.geometry.dispose(); }
+  if (contourGroup) { scene.remove(contourGroup); }
+  if (pointsMesh) { scene.remove(pointsMesh); pointsMesh.geometry.dispose(); }
+
+  // Build geometry
+  const geo = new THREE.PlaneGeometry(TERRAIN_SIZE, TERRAIN_SIZE, SEG, SEG);
+  geo.rotateX(-Math.PI / 2);
+
+  const pos = geo.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const h = heightmap[i] || 0;
+    pos.setY(i, h * HEIGHT_SCALE - 0.3);
+  }
+  geo.computeVertexNormals();
+
+  // Colour by height
+  const colors = new Float32Array(pos.count * 3);
+  for (let i = 0; i < pos.count; i++) {
+    const h = pos.getY(i) / HEIGHT_SCALE + 0.3;
+    let r, g, b;
+    if (h < 0.4) {
+      const t = h / 0.4;
+      r = 0.54 + t * 0.18; g = 0.50 + t * 0.08; b = 0.47 + t * 0.11;
+    } else {
+      const t = (h - 0.4) / 0.6;
+      r = 0.72 + t * 0.12; g = 0.58 - t * 0.05; b = 0.58 + t * 0.08;
+    }
+    colors[i*3] = r; colors[i*3+1] = g; colors[i*3+2] = b;
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+  const mat = new THREE.MeshLambertMaterial({ vertexColors: true, fog: true });
+  terrainMesh = new THREE.Mesh(geo, mat);
+  scene.add(terrainMesh);
+
+  // ── Contour lines ──
+  contourGroup = new THREE.Group();
+  const lineMat = new THREE.LineBasicMaterial({
+    color: 0x6a4855, transparent: true, opacity: 0.28, fog: true,
+  });
+  const size = SEG + 1;
+  const cellSize = TERRAIN_SIZE / SEG;
+  const offset = TERRAIN_SIZE / 2;
+
+  for (const level of [0.15, 0.25, 0.35, 0.45, 0.55, 0.65, 0.72, 0.80, 0.87, 0.93]) {
+    const pts = [];
+    const h = level * HEIGHT_SCALE - 0.3;
+    for (let row = 0; row < SEG; row++) {
+      for (let col = 0; col < SEG; col++) {
+        const h00 = pos.getY(row*size+col);
+        const h10 = pos.getY(row*size+col+1);
+        const h01 = pos.getY((row+1)*size+col);
+        const h11 = pos.getY((row+1)*size+col+1);
+        const x0=col*cellSize-offset, x1=(col+1)*cellSize-offset;
+        const z0=row*cellSize-offset, z1=(row+1)*cellSize-offset;
+        function interp(ha,hb,a,b){return a+(b-a)*(h-ha)/(hb-ha)}
+        let code=0;
+        if(h00>h)code|=1;if(h10>h)code|=2;if(h11>h)code|=4;if(h01>h)code|=8;
+        const top=code&1&&!(code&2)||!(code&1)&&code&2?{x:interp(h00,h10,x0,x1),z:z0}:null;
+        const right=code&2&&!(code&4)||!(code&2)&&code&4?{x:x1,z:interp(h10,h11,z0,z1)}:null;
+        const bottom=code&4&&!(code&8)||!(code&4)&&code&8?{x:interp(h11,h01,x1,x0),z:z1}:null;
+        const left=code&8&&!(code&1)||!(code&8)&&code&1?{x:x0,z:interp(h01,h00,z1,z0)}:null;
+        const verts=[top,right,bottom,left].filter(Boolean);
+        if(verts.length===2){pts.push(new THREE.Vector3(verts[0].x,h+0.01,verts[0].z));pts.push(new THREE.Vector3(verts[1].x,h+0.01,verts[1].z))}
+      }
+    }
+    if (pts.length > 1) {
+      const lg = new THREE.BufferGeometry().setFromPoints(pts);
+      contourGroup.add(new THREE.LineSegments(lg, lineMat.clone()));
+    }
+  }
+  scene.add(contourGroup);
+
+  // ── Brief dots ──
+  function sampleHeight(bx, by) {
+    const col = Math.round(((bx + 1) / 2) * SEG);
+    const row = Math.round(((by + 1) / 2) * SEG);
+    const ci = Math.max(0, Math.min(SEG, col));
+    const ri = Math.max(0, Math.min(SEG, row));
+    return pos.getY(ri * size + ci);
+  }
+
+  const briefPositions = [];
+  const briefColors = [];
+  const briefSizesArr = [];
+
+  briefData = BRIEFS.map(b => {
+    const wx = b.x * (TERRAIN_SIZE / 2);
+    const wz = b.y * (TERRAIN_SIZE / 2);
+    const wy = sampleHeight(b.x, b.y) + 0.08;
+    briefPositions.push(wx, wy, wz);
+    const cluster = clusterInfo(b.tags);
+    // Dim dots that don't match active filter
+    const isFiltered = activeFilterTags.size > 0 && !b.tags.some(t => activeFilterTags.has(t));
+    const alpha = isFiltered ? 0.12 : 1.0;
+    briefColors.push(cluster.rgb[0]*alpha + 0.17*(1-alpha), cluster.rgb[1]*alpha + 0.12*(1-alpha), cluster.rgb[2]*alpha + 0.14*(1-alpha));
+    briefSizesArr.push(6);
+    return { ...b, wx, wy, wz, cluster, isFiltered };
+  });
+
+  const ptGeo = new THREE.BufferGeometry();
+  ptGeo.setAttribute('position', new THREE.Float32BufferAttribute(briefPositions, 3));
+  ptGeo.setAttribute('color', new THREE.Float32BufferAttribute(briefColors, 3));
+  ptGeo.setAttribute('size', new THREE.Float32BufferAttribute(briefSizesArr, 1));
+
+  const ptMat = new THREE.PointsMaterial({
+    vertexColors: true, size: 0.12, sizeAttenuation: true,
+    transparent: true, opacity: 0.85, fog: true,
+  });
+
+  pointsMesh = new THREE.Points(ptGeo, ptMat);
+  scene.add(pointsMesh);
+
+  // Update count
+  document.getElementById('count-n').textContent = BRIEFS.length || '—';
+}
+
+// ─── Lighting (static, only added once) ─────────────────────────────────────
+scene.add(new THREE.AmbientLight(0xc8b0b8, 0.7));
+const dirLight = new THREE.DirectionalLight(0xffe8d6, 0.9);
+dirLight.position.set(3, 8, 4);
+scene.add(dirLight);
+const fillLight = new THREE.DirectionalLight(0xb0c8d0, 0.3);
+fillLight.position.set(-4, 3, -3);
+scene.add(fillLight);
+
+// ─── Raycasting ─────────────────────────────────────────────────────────────
+const raycaster = new THREE.Raycaster();
+raycaster.params.Points.threshold = 0.25;
+const mouse = new THREE.Vector2();
+const tooltip = document.getElementById('tooltip');
+let hoveredBrief = null;
+
+function onMouseMove(e) {
+  mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+  tooltip.style.left = (e.clientX + 16) + 'px';
+  tooltip.style.top  = (e.clientY - 10) + 'px';
+}
+window.addEventListener('mousemove', onMouseMove);
+
+function checkHover() {
+  if (!pointsMesh) return;
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObject(pointsMesh);
+  if (hits.length > 0) {
+    const idx = hits[0].index;
+    const b = briefData[idx];
+    if (b && !b.isFiltered && b !== hoveredBrief) {
+      hoveredBrief = b;
+      const c = b.cluster;
+      document.getElementById('tt-bar').style.background = c.hex;
+      document.getElementById('tt-inner').style.borderColor =
+        c.name === 'magenta' ? 'rgba(200,40,110,0.25)' :
+        c.name === 'sage'    ? 'rgba(74,122,86,0.25)' :
+                               'rgba(122,78,94,0.25)';
+      document.getElementById('tt-name').textContent = b.participant_name || 'Anonymous';
+      document.getElementById('tt-q').textContent = '\u201c' + b.question_im_carrying + '\u201d';
+      const tagsEl = document.getElementById('tt-tags');
+      tagsEl.innerHTML = b.tags.map(t => `<span class="tooltip-tag ${tagAccentClass(t, c)}">${t}</span>`).join('');
+      tooltip.style.display = 'block';
+    }
+  } else {
+    hoveredBrief = null;
+    tooltip.style.display = 'none';
+  }
+}
+
+// ─── Camera drag ────────────────────────────────────────────────────────────
+let isDragging = false;
+let dragStart = { x: 0, y: 0 };
+let camTarget = { x: 0, z: 7 };
+let camCurrent = { x: 0, z: 7 };
+
+renderer.domElement.addEventListener('mousedown', e => {
+  isDragging = true;
+  dragStart = { x: e.clientX, y: e.clientY };
+  document.body.classList.add('dragging');
+});
+renderer.domElement.addEventListener('mouseup', () => {
+  isDragging = false;
+  document.body.classList.remove('dragging');
+});
+renderer.domElement.addEventListener('mousemove', e => {
+  if (!isDragging) return;
+  const dx = (e.clientX - dragStart.x) / window.innerWidth;
+  const dy = (e.clientY - dragStart.y) / window.innerHeight;
+  camTarget.x -= dx * 6;
+  camTarget.z -= dy * 4;
+  camTarget.x = Math.max(-5, Math.min(5, camTarget.x));
+  camTarget.z = Math.max(3, Math.min(12, camTarget.z));
+  dragStart = { x: e.clientX, y: e.clientY };
+});
+
+// Touch
+renderer.domElement.addEventListener('touchstart', e => {
+  const t = e.touches[0];
+  isDragging = true;
+  dragStart = { x: t.clientX, y: t.clientY };
+}, { passive: true });
+renderer.domElement.addEventListener('touchend', () => { isDragging = false; });
+renderer.domElement.addEventListener('touchmove', e => {
+  if (!isDragging) return;
+  const t = e.touches[0];
+  const dx = (t.clientX - dragStart.x) / window.innerWidth;
+  const dy = (t.clientY - dragStart.y) / window.innerHeight;
+  camTarget.x -= dx * 6;
+  camTarget.z -= dy * 4;
+  camTarget.x = Math.max(-5, Math.min(5, camTarget.x));
+  camTarget.z = Math.max(3, Math.min(12, camTarget.z));
+  dragStart = { x: t.clientX, y: t.clientY };
+}, { passive: true });
+
+// ─── Animate ────────────────────────────────────────────────────────────────
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const t = clock.getElapsedTime();
+
+  if (!isDragging) {
+    camTarget.x = Math.sin(t * 0.06) * 1.2;
+  }
+
+  camCurrent.x += (camTarget.x - camCurrent.x) * 0.04;
+  camCurrent.z += (camTarget.z - camCurrent.z) * 0.04;
+  camera.position.set(camCurrent.x, 3.5, camCurrent.z);
+  camera.lookAt(camCurrent.x * 0.3, 0, 0);
+
+  // Hover size pulse
+  if (pointsMesh) {
+    const sizes = pointsMesh.geometry.attributes.size.array;
+    for (let i = 0; i < briefData.length; i++) {
+      sizes[i] = hoveredBrief && briefData[i] === hoveredBrief ? 10 : 6;
+    }
+    pointsMesh.geometry.attributes.size.needsUpdate = true;
+  }
+
+  checkHover();
+  renderer.render(scene, camera);
+}
+
+animate();
+
+// ─── Resize ─────────────────────────────────────────────────────────────────
+window.addEventListener('resize', () => {
+  const w = window.innerWidth, h = window.innerHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+});
+
+// ─── Data loading ───────────────────────────────────────────────────────────
+async function loadBriefs() {
+  try {
+    const res = await fetch('/api/briefs');
+    if (!res.ok) throw new Error(`${res.status}`);
+    BRIEFS = await res.json();
+  } catch (err) {
+    console.warn('API unavailable, using fallback data:', err.message);
+    BRIEFS = FALLBACK_BRIEFS;
+  }
+  rebuildTerrain();
+}
+
+async function loadTags() {
+  try {
+    const res = await fetch('/api/tags');
+    if (!res.ok) throw new Error(`${res.status}`);
+    ALL_TAGS = await res.json();
+  } catch {
+    // Fallback seed tags
+    ALL_TAGS = [
+      'water','country','infrastructure','ecology','data sovereignty',
+      'collective intelligence','urban systems','storytelling','governance',
+      'more-than-human','community practice','technology critique'
+    ].map((label, i) => ({ id: `seed-${i}`, label, is_seed: true }));
+  }
+  renderFilterChips();
+  renderFormTags();
+}
+
+// ─── Tag filter UI ──────────────────────────────────────────────────────────
+function renderFilterChips() {
+  const el = document.getElementById('filter-chips');
+  const panel = document.getElementById('filter-panel');
+  if (!ALL_TAGS.length) return;
+  panel.style.display = 'block';
+
+  el.innerHTML = ALL_TAGS
+    .filter(t => t.is_seed)
+    .map(t => `<button class="filter-chip ${activeFilterTags.has(t.label) ? 'active' : ''}" data-tag="${t.label}">${t.label}</button>`)
+    .join('');
+
+  el.querySelectorAll('.filter-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const tag = chip.dataset.tag;
+      if (activeFilterTags.has(tag)) {
+        activeFilterTags.delete(tag);
+        chip.classList.remove('active');
+      } else {
+        activeFilterTags.add(tag);
+        chip.classList.add('active');
+      }
+      rebuildTerrain();
+    });
+  });
+}
+
+// ─── Form tag chips ─────────────────────────────────────────────────────────
+function renderFormTags() {
+  const el = document.getElementById('form-tags');
+  el.innerHTML = ALL_TAGS.map(t =>
+    `<button type="button" class="tag-chip ${selectedFormTags.has(t.id) ? 'selected' : ''}" data-id="${t.id}" data-label="${t.label}">${t.label}</button>`
+  ).join('');
+
+  el.querySelectorAll('.tag-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const id = chip.dataset.id;
+      if (selectedFormTags.has(id)) {
+        selectedFormTags.delete(id);
+        chip.classList.remove('selected');
+      } else {
+        selectedFormTags.add(id);
+        chip.classList.add('selected');
+      }
+    });
+  });
+}
+
+// ─── Form logic ─────────────────────────────────────────────────────────────
+const formOverlay = document.getElementById('form-overlay');
+const addBtn = document.getElementById('add-btn');
+const formCancel = document.getElementById('form-cancel');
+const briefForm = document.getElementById('brief-form');
+const formSubmitBtn = document.getElementById('form-submit');
+
+// Disable button if already submitted
+if (hasSubmitted) {
+  addBtn.textContent = 'brief submitted';
+  addBtn.disabled = true;
+}
+
+addBtn.addEventListener('click', () => {
+  if (hasSubmitted) return;
+  formOverlay.classList.add('open');
+});
+
+formCancel.addEventListener('click', () => {
+  formOverlay.classList.remove('open');
+});
+
+// Close on overlay background click
+formOverlay.addEventListener('click', e => {
+  if (e.target === formOverlay) formOverlay.classList.remove('open');
+});
+
+briefForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const question = document.getElementById('f-question').value.trim();
+  if (!question) {
+    document.getElementById('f-question').style.borderColor = '#c8286e';
+    return;
+  }
+
+  formSubmitBtn.disabled = true;
+  formSubmitBtn.classList.add('submitting');
+
+  const body = {
+    participant_name: document.getElementById('f-name').value.trim() || null,
+    practice_area: document.getElementById('f-practice').value.trim() || null,
+    what_im_working_on: document.getElementById('f-working').value.trim() || null,
+    question_im_carrying: question,
+    what_push_i_want: document.getElementById('f-push').value || null,
+    tag_ids: [...selectedFormTags].filter(id => !id.startsWith('seed-')), // only real UUIDs
+  };
+
+  try {
+    const res = await fetch('/api/briefs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) throw new Error(`Submit failed: ${res.status}`);
+
+    // Mark as submitted
+    localStorage.setItem('ci_submitted', 'true');
+    hasSubmitted = true;
+    addBtn.textContent = 'brief submitted';
+    addBtn.disabled = true;
+
+    // Close form and reload terrain
+    formOverlay.classList.remove('open');
+    await loadBriefs();
+  } catch (err) {
+    console.error('Submit error:', err);
+    formSubmitBtn.disabled = false;
+    formSubmitBtn.classList.remove('submitting');
+    // Show error subtly
+    formSubmitBtn.textContent = 'something went wrong — try again';
+    setTimeout(() => { formSubmitBtn.textContent = 'enter the landscape →'; }, 3000);
+  }
+});
+
+// ─── Polling ────────────────────────────────────────────────────────────────
+let lastBriefCount = 0;
+
+async function pollBriefs() {
+  try {
+    const res = await fetch('/api/briefs');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.length !== lastBriefCount) {
+      lastBriefCount = data.length;
+      BRIEFS = data;
+      rebuildTerrain();
+    }
+  } catch { /* silent */ }
+}
+
+setInterval(pollBriefs, 15000);
+
+// ─── Init ───────────────────────────────────────────────────────────────────
+loadTags();
+loadBriefs();
+</script>
+</body>
+</html>

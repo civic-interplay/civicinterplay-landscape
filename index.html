@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Civic.Interplay — Gathering Intelligences</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=Spectral:ital,wght@0,300;0,400;1,300&display=swap');
+
+  :root {
+    --bg-dark: #2a1f24;
+    --bg-cream: #f0eaec;
+    --magenta: #c8286e;
+    --sage: #4a7a56;
+    --mauve: #9a6678;
+    --text-light: rgba(228,218,218,0.55);
+    --text-dark: rgba(60,35,45,0.72);
+    --text-muted: rgba(60,35,45,0.4);
+    --border: rgba(100,70,80,0.15);
+    --font-display: 'Cormorant Garamond', Georgia, serif;
+    --font-body: 'Spectral', Georgia, serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg-cream);
+    font-family: var(--font-body);
+    color: var(--text-dark);
+    overflow-x: hidden;
+  }
+
+  /* ─── Navbar ─────────────────────────────────────────────────────── */
+  .navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2rem;
+    height: 48px;
+    background: var(--bg-cream);
+    border-bottom: 0.5px solid var(--border);
+  }
+
+  .navbar-left {
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(60,35,45,0.6);
+  }
+
+  .navbar-left em { font-style: normal; color: var(--magenta); }
+
+  .navbar-center {
+    display: flex;
+    gap: 2rem;
+  }
+
+  .navbar-center a {
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 300;
+    font-style: italic;
+    color: var(--text-muted);
+    text-decoration: none;
+    letter-spacing: 0.04em;
+    transition: color 0.2s;
+  }
+
+  .navbar-center a:hover { color: var(--text-dark); }
+
+  .nav-cta {
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 300;
+    letter-spacing: 0.08em;
+    color: var(--magenta);
+    border: 0.5px solid rgba(200,40,110,0.4);
+    padding: 6px 14px;
+    cursor: pointer;
+    background: transparent;
+    transition: all 0.25s;
+  }
+
+  .nav-cta:hover { background: rgba(200,40,110,0.06); border-color: var(--magenta); }
+
+  /* ─── State 01: Landing ──────────────────────────────────────────── */
+  .state-landing {
+    min-height: 100vh;
+    padding: 68px 2rem 2rem;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .landing-grid {
+    flex: 1;
+    display: flex;
+    gap: 2rem;
+    min-height: 0;
+  }
+
+  .terrain-frame {
+    flex: 1;
+    position: relative;
+    border: 0.5px solid rgba(100,70,80,0.2);
+    overflow: hidden;
+    will-change: transform, opacity;
+    transform-origin: center top;
+  }
+
+  #terrain-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .cluster-label {
+    position: absolute;
+    font-family: var(--font-body);
+    font-size: 9px;
+    font-weight: 300;
+    font-style: italic;
+    letter-spacing: 0.04em;
+    pointer-events: none;
+    opacity: 0.55;
+    white-space: nowrap;
+  }
+
+  .cluster-label.magenta { color: var(--magenta); }
+  .cluster-label.sage { color: var(--sage); }
+  .cluster-label.mauve { color: var(--mauve); }
+
+  .terrain-hint {
+    position: absolute;
+    bottom: 0.8rem;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    font-weight: 300;
+    font-style: italic;
+    color: rgba(60,35,45,0.25);
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+  }
+
+  /* Sidebar */
+  .stats-sidebar {
+    width: 200px;
+    flex-shrink: 0;
+    padding-top: 0.5rem;
+  }
+
+  .stat-block {
+    margin-bottom: 1.4rem;
+  }
+
+  .stat-n {
+    font-family: var(--font-display);
+    font-size: 32px;
+    font-weight: 300;
+    color: rgba(60,35,45,0.5);
+    line-height: 1;
+    display: block;
+  }
+
+  .stat-label {
+    font-size: 10px;
+    font-weight: 300;
+    font-style: italic;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+  }
+
+  .nearby-heading {
+    font-family: var(--font-display);
+    font-size: 10px;
+    font-weight: 300;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0.7rem;
+    margin-top: 0.5rem;
+  }
+
+  /* Brief preview card */
+  .brief-preview {
+    border: 0.5px solid var(--border);
+    padding: 0.85rem 1rem;
+    transition: opacity 0.3s;
+  }
+
+  .preview-bar {
+    height: 2px;
+    width: 100%;
+    margin-bottom: 0.6rem;
+    opacity: 0.6;
+  }
+
+  .preview-name {
+    font-family: var(--font-display);
+    font-size: 10px;
+    font-weight: 400;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0.3rem;
+  }
+
+  .preview-q {
+    font-size: 12px;
+    font-weight: 300;
+    font-style: italic;
+    color: var(--text-dark);
+    line-height: 1.5;
+  }
+
+  .preview-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 0.5rem;
+  }
+
+  .preview-tag {
+    font-size: 9px;
+    font-weight: 300;
+    letter-spacing: 0.04em;
+    padding: 1px 6px;
+    border: 0.5px solid rgba(100,70,80,0.2);
+    color: var(--text-muted);
+  }
+
+  .preview-tag.t-magenta { color: var(--magenta); border-color: rgba(200,40,110,0.25); }
+  .preview-tag.t-sage { color: var(--sage); border-color: rgba(74,122,86,0.25); }
+  .preview-tag.t-mauve { color: var(--mauve); border-color: rgba(154,102,120,0.25); }
+
+  /* Scroll prompt */
+  .scroll-prompt {
+    text-align: center;
+    padding: 1.5rem 0 1rem;
+    font-size: 11px;
+    font-weight: 300;
+    font-style: italic;
+    color: rgba(60,35,45,0.2);
+    letter-spacing: 0.06em;
+  }
+
+  /* ─── State 02: Invitation ───────────────────────────────────────── */
+  .state-invitation {
+    min-height: 100vh;
+    background: var(--bg-cream);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 6rem 2rem 3rem;
+  }
+
+  .invitation-content {
+    max-width: 580px;
+  }
+
+  .invitation-content h1 {
+    font-family: var(--font-body);
+    font-size: 32px;
+    font-weight: 300;
+    font-style: italic;
+    color: rgba(60,35,45,0.75);
+    margin-bottom: 2rem;
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 0.8s ease, transform 0.6s ease;
+  }
+
+  .invitation-content p {
+    font-size: 14px;
+    font-weight: 300;
+    color: rgba(60,35,45,0.6);
+    line-height: 1.75;
+    margin-bottom: 1.3rem;
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.7s ease, transform 0.5s ease;
+  }
+
+  .invitation-content blockquote {
+    border-left: 1px solid var(--magenta);
+    padding-left: 1.2rem;
+    margin: 1.6rem 0;
+    font-style: italic;
+    font-size: 14px;
+    font-weight: 300;
+    color: rgba(60,35,45,0.65);
+    line-height: 1.7;
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.7s ease, transform 0.5s ease;
+  }
+
+  /* Staggered fade-in */
+  .state-invitation.in-view h1 { opacity: 1; transform: translateY(0); }
+  .state-invitation.in-view p:nth-child(2) { opacity: 1; transform: translateY(0); transition-delay: 0.15s; }
+  .state-invitation.in-view blockquote { opacity: 1; transform: translateY(0); transition-delay: 0.3s; }
+  .state-invitation.in-view p:nth-child(4) { opacity: 1; transform: translateY(0); transition-delay: 0.45s; }
+  .state-invitation.in-view p:nth-child(5) { opacity: 1; transform: translateY(0); transition-delay: 0.6s; }
+  .state-invitation.in-view .cta-enter { opacity: 1; transform: translateY(0); transition-delay: 0.75s; }
+
+  .cta-enter {
+    display: inline-block;
+    margin-top: 1.5rem;
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 300;
+    letter-spacing: 0.08em;
+    color: var(--magenta);
+    border: 0.5px solid rgba(200,40,110,0.4);
+    padding: 10px 20px;
+    cursor: pointer;
+    background: transparent;
+    transition: all 0.25s;
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  .cta-enter:hover { background: rgba(200,40,110,0.06); border-color: var(--magenta); }
+
+  /* ─── State 03: Form Overlay ─────────────────────────────────────── */
+  .form-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(42,31,36,0.4);
+    backdrop-filter: blur(3px);
+  }
+
+  .form-overlay.open { display: flex; }
+
+  .form-panel {
+    background: var(--bg-cream);
+    border: 0.5px solid var(--border);
+    width: 100%;
+    max-width: 480px;
+    max-height: 92vh;
+    overflow-y: auto;
+    padding: 2rem 2.2rem 1.5rem;
+  }
+
+  @media (max-width: 520px) {
+    .form-panel { max-width: 100%; max-height: 100vh; height: 100vh; }
+  }
+
+  .form-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.5rem;
+  }
+
+  .form-header-title {
+    font-family: var(--font-display);
+    font-size: 10px;
+    font-weight: 300;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .form-close {
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 300;
+    color: var(--text-muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    letter-spacing: 0.04em;
+  }
+
+  .form-close:hover { color: var(--text-dark); }
+
+  .form-subtitle {
+    font-family: var(--font-body);
+    font-size: 22px;
+    font-weight: 300;
+    font-style: italic;
+    color: rgba(60,35,45,0.65);
+    margin-bottom: 1.2rem;
+    line-height: 1.3;
+  }
+
+  /* Progress dots */
+  .progress-dots {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 1.5rem;
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    border: 0.5px solid rgba(100,70,80,0.25);
+    background: transparent;
+    transition: background 0.3s, border-color 0.3s;
+  }
+
+  .dot.filled {
+    background: var(--magenta);
+    border-color: var(--magenta);
+  }
+
+  /* Form groups */
+  .form-group {
+    margin-bottom: 1.3rem;
+  }
+
+  .form-group label {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 10px;
+    font-weight: 300;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0.15rem;
+  }
+
+  .form-sublabel {
+    font-size: 10px;
+    font-weight: 300;
+    font-style: italic;
+    color: rgba(60,35,45,0.28);
+    margin-bottom: 0.4rem;
+    display: block;
+  }
+
+  .form-group input,
+  .form-group textarea,
+  .form-group select {
+    width: 100%;
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 300;
+    color: var(--text-dark);
+    background: transparent;
+    border: 0.5px solid rgba(100,70,80,0.18);
+    padding: 0.55rem 0.7rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .form-group input:focus,
+  .form-group textarea:focus { border-color: rgba(200,40,110,0.35); }
+
+  .form-group textarea {
+    resize: vertical;
+    min-height: 52px;
+    line-height: 1.55;
+  }
+
+  .form-group input::placeholder,
+  .form-group textarea::placeholder {
+    font-style: italic;
+    color: rgba(60,35,45,0.22);
+  }
+
+  /* Key question field — emphasized */
+  .form-group.key-field textarea {
+    border-bottom: 1px solid var(--magenta);
+  }
+
+  /* Tags */
+  .tag-section-label {
+    font-family: var(--font-display);
+    font-size: 10px;
+    font-weight: 300;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+  }
+
+  .tag-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 0.5rem;
+  }
+
+  .tag-chip {
+    font-size: 10px;
+    font-family: var(--font-body);
+    font-weight: 300;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    border: 0.5px solid rgba(100,70,80,0.2);
+    padding: 3px 8px;
+    cursor: pointer;
+    background: transparent;
+    transition: all 0.2s;
+  }
+
+  .tag-chip.selected {
+    color: var(--magenta);
+    border-color: rgba(200,40,110,0.4);
+    background: rgba(200,40,110,0.04);
+  }
+
+  .add-tag-btn {
+    font-family: var(--font-body);
+    font-size: 10px;
+    font-weight: 300;
+    font-style: italic;
+    color: var(--magenta);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 3px 0;
+    opacity: 0.7;
+  }
+
+  .add-tag-btn:hover { opacity: 1; }
+
+  .add-tag-input {
+    font-family: var(--font-body);
+    font-size: 10px;
+    font-weight: 300;
+    color: var(--text-dark);
+    border: 0.5px solid rgba(200,40,110,0.3);
+    padding: 3px 8px;
+    outline: none;
+    width: 120px;
+    display: none;
+  }
+
+  .form-footer-text {
+    font-size: 10px;
+    font-weight: 300;
+    font-style: italic;
+    color: rgba(60,35,45,0.3);
+    margin-top: 1.2rem;
+    line-height: 1.5;
+  }
+
+  .form-submit {
+    display: inline-block;
+    margin-top: 1rem;
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 300;
+    letter-spacing: 0.08em;
+    color: var(--magenta);
+    border: 0.5px solid rgba(200,40,110,0.4);
+    padding: 10px 20px;
+    cursor: pointer;
+    background: transparent;
+    transition: all 0.25s;
+  }
+
+  .form-submit:hover { background: rgba(200,40,110,0.06); }
+  .form-submit:disabled { opacity: 0.3; cursor: default; }
+
+  .form-submit.submitting {
+    animation: pulse-border 1.2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-border {
+    0%, 100% { border-color: rgba(200,40,110,0.4); }
+    50% { border-color: rgba(200,40,110,0.8); }
+  }
+
+  /* ─── State 04: Confirmation ─────────────────────────────────────── */
+  .state-confirmation {
+    display: none;
+    min-height: 100vh;
+    background: var(--bg-cream);
+    padding: 68px 2rem 0;
+  }
+
+  .state-confirmation.visible { display: block; }
+
+  .confirmation-grid {
+    display: flex;
+    gap: 3rem;
+    max-width: 840px;
+    margin: 0 auto;
+    padding: 4rem 0 3rem;
+  }
+
+  .confirmation-left {
+    flex: 1;
+  }
+
+  .confirmation-arrow {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: 0.5px solid var(--border);
+    font-family: var(--font-body);
+    font-size: 16px;
+    color: var(--text-muted);
+    margin-bottom: 1.5rem;
+  }
+
+  .confirmation-left h1 {
+    font-family: var(--font-body);
+    font-size: 26px;
+    font-weight: 300;
+    font-style: italic;
+    color: rgba(60,35,45,0.7);
+    line-height: 1.35;
+    margin-bottom: 1.5rem;
+  }
+
+  .confirmation-left p {
+    font-size: 13px;
+    font-weight: 300;
+    color: rgba(60,35,45,0.55);
+    line-height: 1.7;
+    margin-bottom: 1rem;
+  }
+
+  .cta-resonance {
+    display: inline-block;
+    margin-top: 1rem;
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 300;
+    letter-spacing: 0.06em;
+    color: var(--magenta);
+    border: 0.5px solid rgba(200,40,110,0.4);
+    padding: 10px 18px;
+    cursor: pointer;
+    background: transparent;
+    text-decoration: none;
+    transition: all 0.25s;
+  }
+
+  .cta-resonance:hover { background: rgba(200,40,110,0.06); }
+
+  .confirmation-right {
+    width: 300px;
+    flex-shrink: 0;
+  }
+
+  .confirmation-right h3 {
+    font-family: var(--font-display);
+    font-size: 10px;
+    font-weight: 300;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0.8rem;
+  }
+
+  .submitted-card {
+    border: 0.5px solid var(--border);
+    padding: 1rem 1.15rem 0.9rem;
+  }
+
+  .submitted-card .preview-bar { margin-bottom: 0.65rem; }
+
+  .brief-footnote {
+    font-size: 11px;
+    font-weight: 300;
+    font-style: italic;
+    color: rgba(60,35,45,0.35);
+    line-height: 1.6;
+    margin-top: 0.8rem;
+  }
+
+  /* Footer */
+  .site-footer {
+    max-width: 840px;
+    margin: 0 auto;
+    padding: 3rem 0 2rem;
+    border-top: 0.5px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    gap: 2rem;
+  }
+
+  .footer-material {
+    flex: 1;
+    font-size: 10px;
+    font-weight: 300;
+    font-style: italic;
+    color: rgba(60,35,45,0.25);
+    line-height: 1.6;
+  }
+
+  .footer-credits {
+    text-align: right;
+    font-family: var(--font-display);
+    font-size: 10px;
+    font-weight: 300;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(60,35,45,0.3);
+    line-height: 1.6;
+  }
+
+  .footer-credits em {
+    display: block;
+    font-family: var(--font-body);
+    font-style: italic;
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: 10px;
+  }
+
+  /* Grain */
+  .grain {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 100;
+    opacity: 0.25;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
+  }
+
+  /* ─── Responsive ─────────────────────────────────────────────────── */
+  @media (max-width: 900px) {
+    .landing-grid { flex-direction: column; }
+    .stats-sidebar { width: 100%; display: flex; gap: 2rem; flex-wrap: wrap; }
+    .stat-block { margin-bottom: 0; }
+    .nearby-briefs { flex: 1; min-width: 200px; }
+    .confirmation-grid { flex-direction: column; }
+    .confirmation-right { width: 100%; }
+  }
+
+  @media (max-width: 600px) {
+    .navbar { padding: 0 1rem; }
+    .navbar-center { display: none; }
+    .state-landing { padding: 60px 1rem 1rem; }
+    .state-invitation { padding: 4rem 1.2rem 2rem; }
+    .invitation-content h1 { font-size: 24px; }
+    .site-footer { flex-direction: column; }
+    .footer-credits { text-align: left; }
+  }
+</style>
+</head>
+<body>
+
+<div class="grain"></div>
+
+<!-- ─── Navbar ───────────────────────────────────────────────────── -->
+<nav class="navbar">
+  <div class="navbar-left">CIVIC<em>.</em>INTERPLAY</div>
+  <div class="navbar-center">
+    <a href="/terrain.html">the landscape</a>
+    <a href="#invitation">about</a>
+  </div>
+  <button class="nav-cta" id="nav-cta">add your brief →</button>
+</nav>
+
+<!-- ─── 01: Landing ─────────────────────────────────────────────── -->
+<section class="state-landing" id="state-landing">
+  <div class="landing-grid">
+    <div class="terrain-frame" id="terrain-frame">
+      <canvas id="terrain-canvas"></canvas>
+      <div id="cluster-labels"></div>
+      <div class="terrain-hint">drag to traverse · hover to read</div>
+    </div>
+    <aside class="stats-sidebar" id="stats-sidebar">
+      <div class="stat-block">
+        <span class="stat-n" id="stat-briefs">—</span>
+        <span class="stat-label">briefs in the landscape</span>
+      </div>
+      <div class="stat-block">
+        <span class="stat-n" id="stat-clusters">—</span>
+        <span class="stat-label">clusters forming</span>
+      </div>
+      <div class="nearby-briefs">
+        <div class="nearby-heading">Nearby Briefs</div>
+        <div class="brief-preview" id="brief-preview">
+          <div class="preview-bar" id="pv-bar"></div>
+          <div class="preview-name" id="pv-name"></div>
+          <div class="preview-q" id="pv-q"></div>
+          <div class="preview-tags" id="pv-tags"></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+  <div class="scroll-prompt">↓ scroll down · the terrain recedes · text emerges</div>
+</section>
+
+<!-- ─── 02: Invitation ──────────────────────────────────────────── -->
+<section class="state-invitation" id="invitation">
+  <div class="invitation-content">
+    <h1>An invitation, to gather.</h1>
+
+    <p>We are entering a time when computing systems are becoming deeply capable. This shift raises a question that is less technical than it is deeply human.</p>
+
+    <blockquote>What kinds of intelligences and sense-making do we need to cultivate in ourselves, in order to adapt to these newer kinds of agencies?</blockquote>
+
+    <p>Intelligence is not exclusively human. A mangrove system reading tidal shifts. Mycelium networks distributing nutrients. Migratory birds navigating by magnetic fields. These are not metaphors. They are intelligences.</p>
+
+    <p>This terrain is shaped by the thinking of everyone who enters it. Where more participants' thinking converges, the terrain rises. Where the space is sparse, it feels like open ground — not empty, open.</p>
+
+    <button class="cta-enter" id="cta-enter">enter the terrain →</button>
+  </div>
+  <div class="scroll-prompt">↓ click "add your brief" · overlay opens over the terrain</div>
+</section>
+
+<!-- ─── 03: Form Overlay ────────────────────────────────────────── -->
+<div class="form-overlay" id="form-overlay">
+  <div class="form-panel">
+    <div class="form-header">
+      <span class="form-header-title">Gathering Intelligences — Your Brief</span>
+      <button class="form-close" id="form-close">close ×</button>
+    </div>
+
+    <div class="form-subtitle">What are you bringing into the room?</div>
+
+    <div class="progress-dots" id="progress-dots">
+      <span class="dot" id="dot-0"></span>
+      <span class="dot" id="dot-1"></span>
+      <span class="dot" id="dot-2"></span>
+      <span class="dot" id="dot-3"></span>
+    </div>
+
+    <form id="brief-form" autocomplete="off">
+      <div class="form-group">
+        <label for="f-who">Who are you</label>
+        <span class="form-sublabel">name, practice, where you work</span>
+        <input type="text" id="f-who" placeholder="urban researcher, Sydney…" />
+      </div>
+
+      <div class="form-group">
+        <label for="f-working">What you're working on</label>
+        <span class="form-sublabel">the specific thing, not the general area</span>
+        <textarea id="f-working" rows="2"></textarea>
+      </div>
+
+      <div class="form-group key-field">
+        <label for="f-question">The question you're carrying</label>
+        <span class="form-sublabel">unresolved — one question you want more minds on</span>
+        <textarea id="f-question" rows="3"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="f-push">What kind of push you're looking for</label>
+        <span class="form-sublabel">what would help you most right now</span>
+        <input type="text" id="f-push" placeholder="challenge my assumptions…" />
+      </div>
+
+      <div class="form-group">
+        <div class="tag-section-label">Tags</div>
+        <div class="tag-chips" id="form-tags"></div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
+          <button type="button" class="add-tag-btn" id="add-tag-btn">+ add your own</button>
+          <input type="text" class="add-tag-input" id="add-tag-input" placeholder="new tag…" />
+        </div>
+      </div>
+
+      <div class="form-footer-text">
+        Your brief enters the landscape as written. It cannot be edited after submission.
+      </div>
+
+      <button type="submit" class="form-submit" id="form-submit">enter the landscape →</button>
+    </form>
+  </div>
+</div>
+
+<!-- ─── 04: Confirmation ────────────────────────────────────────── -->
+<section class="state-confirmation" id="state-confirmation">
+  <div class="confirmation-grid">
+    <div class="confirmation-left">
+      <div class="confirmation-arrow">→</div>
+      <h1>Your brief has entered the terrain.</h1>
+      <p>When others submit, the landscape will shift. Where your thinking converges with theirs, ridges will form. Where your question sits alone, the ground will be open — an invitation, not an absence.</p>
+      <p>We'll send you a link to revisit the terrain before the workshop.</p>
+      <a class="cta-resonance" href="/terrain.html">find resonance — who is thinking near you?</a>
+    </div>
+    <div class="confirmation-right">
+      <h3>Your Brief</h3>
+      <div class="submitted-card" id="submitted-card">
+        <div class="preview-bar" id="sc-bar"></div>
+        <div class="preview-name" id="sc-name"></div>
+        <div class="preview-q" id="sc-q"></div>
+        <div class="preview-tags" id="sc-tags"></div>
+      </div>
+      <p class="brief-footnote">Your brief is now in the landscape. Scroll to find where you've landed — who's thinking nearby, what ridges your question is helping form.</p>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <p class="footer-material">This space runs on energy, water, and extracted minerals. Every page load has a material footprint. The terrain's restraint is a design ethic, not a limitation.</p>
+    <p class="footer-credits">Gathering Intelligences — Sydney &amp; Melbourne, 2026<em>Dr Sarah Barns &amp; Irina Panovich</em></p>
+  </footer>
+</section>
+
+<script>
+// ─── Shared code (duplicated from terrain.html — no module system) ──────────
+
+// Simplex noise
+const SimplexNoise = (function(){
+  const G2=0.2113248654051871;
+  const p=[151,160,137,91,90,15,131,13,201,95,96,53,194,233,7,225,140,36,103,30,69,142,8,99,37,240,21,10,23,190,6,148,247,120,234,75,0,26,197,62,94,252,219,203,117,35,11,32,57,177,33,88,237,149,56,87,174,20,125,136,171,168,68,175,74,165,71,134,139,48,27,166,77,146,158,231,83,111,229,122,60,211,133,230,220,105,92,41,55,46,245,40,244,102,143,54,65,25,63,161,1,216,80,73,209,76,132,187,208,89,18,169,200,196,135,130,116,188,159,86,164,100,109,198,173,186,3,64,52,217,226,250,124,123,5,202,38,147,118,126,255,82,85,212,207,206,59,227,47,16,58,17,182,189,28,42,223,183,170,213,119,248,152,2,44,154,163,70,221,153,101,155,167,43,172,9,129,22,39,253,19,98,108,110,79,113,224,232,178,185,112,104,218,246,97,228,251,34,242,193,238,210,144,12,191,179,162,241,81,51,145,235,249,14,239,107,49,192,214,31,181,199,106,157,184,84,204,176,115,121,50,45,127,4,150,254,138,236,205,93,222,114,67,29,24,72,243,141,128,195,78,66,215,61,156,180];
+  const perm=new Uint8Array(512),permMod12=new Uint8Array(512);
+  for(let i=0;i<512;i++){perm[i]=p[i&255];permMod12[i]=perm[i]%12}
+  const grad3=[[1,1,0],[-1,1,0],[1,-1,0],[-1,-1,0],[1,0,1],[-1,0,1],[1,0,-1],[-1,0,-1],[0,1,1],[0,-1,1],[0,1,-1],[0,-1,-1]];
+  function dot2(g,x,y){return g[0]*x+g[1]*y}
+  return{noise2D:function(xin,yin){
+    let n0,n1,n2;
+    const s=(xin+yin)*0.3660254037844386;
+    const i=Math.floor(xin+s),j=Math.floor(yin+s);
+    const t=(i+j)*G2;
+    const X0=i-t,Y0=j-t,x0=xin-X0,y0=yin-Y0;
+    let i1,j1;if(x0>y0){i1=1;j1=0}else{i1=0;j1=1}
+    const x1=x0-i1+G2,y1=y0-j1+G2,x2=x0-1+2*G2,y2=y0-1+2*G2;
+    const ii=i&255,jj=j&255;
+    const gi0=permMod12[ii+perm[jj]],gi1=permMod12[ii+i1+perm[jj+j1]],gi2=permMod12[ii+1+perm[jj+1]];
+    let t0=0.5-x0*x0-y0*y0;if(t0<0){n0=0}else{t0*=t0;n0=t0*t0*dot2(grad3[gi0],x0,y0)}
+    let t1=0.5-x1*x1-y1*y1;if(t1<0){n1=0}else{t1*=t1;n1=t1*t1*dot2(grad3[gi1],x1,y1)}
+    let t2=0.5-x2*x2-y2*y2;if(t2<0){n2=0}else{t2*=t2;n2=t2*t2*dot2(grad3[gi2],x2,y2)}
+    return 70*(n0+n1+n2);
+  }};
+})();
+
+function buildHeightmap(size, briefs, bandwidth=0.18, noiseScale=0.35, noiseAmp=0.15) {
+  const map = new Float32Array(size * size);
+  const half = size / 2;
+  for (let row = 0; row < size; row++) {
+    for (let col = 0; col < size; col++) {
+      const wx = (col - half) / half;
+      const wy = (row - half) / half;
+      let density = 0;
+      for (const b of briefs) {
+        const dx = wx - b.x, dy = wy - b.y;
+        density += Math.exp(-(dx*dx + dy*dy) / (2 * bandwidth * bandwidth));
+      }
+      map[row * size + col] = density;
+    }
+  }
+  let max = 0;
+  for (let i = 0; i < map.length; i++) if (map[i] > max) max = map[i];
+  if (max > 0) for (let i = 0; i < map.length; i++) map[i] /= max;
+
+  for (let row = 0; row < size; row++) {
+    for (let col = 0; col < size; col++) {
+      const nx = (col / size) * noiseScale * 8;
+      const ny = (row / size) * noiseScale * 8;
+      const n = (SimplexNoise.noise2D(nx, ny)*0.5+0.5) + (SimplexNoise.noise2D(nx*2.1,ny*2.1)*0.5+0.5)*0.5 + (SimplexNoise.noise2D(nx*4.3,ny*4.3)*0.5+0.5)*0.25;
+      const i = row * size + col;
+      map[i] = map[i] * 0.75 + (n/1.75) * noiseAmp + map[i] * (n/1.75) * 0.15;
+    }
+  }
+  let max2 = 0;
+  for (let i = 0; i < map.length; i++) if (map[i] > max2) max2 = map[i];
+  if (max2 > 0) for (let i = 0; i < map.length; i++) map[i] /= max2;
+  return map;
+}
+
+function clusterInfo(tags) {
+  if (tags.some(t => ['data sovereignty','country','governance'].includes(t)))
+    return { rgb: [0.78,0.16,0.43], hex: '#c8286e', name: 'magenta', label: 'data sovereignty' };
+  if (tags.some(t => ['ecology','water','more-than-human','storytelling'].includes(t)))
+    return { rgb: [0.72,0.63,0.67], hex: '#9a6678', name: 'mauve', label: 'more-than-human' };
+  return { rgb: [0.43,0.55,0.46], hex: '#4a7a56', name: 'sage', label: 'civic infrastructure' };
+}
+
+function tagAccentClass(tag) {
+  if (['data sovereignty','country','governance'].includes(tag)) return 't-magenta';
+  if (['ecology','water','more-than-human','storytelling'].includes(tag)) return 't-mauve';
+  return 't-sage';
+}
+
+const FALLBACK_BRIEFS = [
+  { id:1, x:-0.35, y:0.28, participant_name:'Lucie Bui', question_im_carrying:'How do we design systems that listen the way a long-term resident does — slowly, across seasons?', tags:['country','water','more-than-human'] },
+  { id:2, x:-0.28, y:0.22, participant_name:'Yuin / Marcus Webb', question_im_carrying:'What gets lost when we turn community knowledge into extractable variables?', tags:['data sovereignty','community practice'] },
+  { id:3, x:-0.38, y:0.32, participant_name:'Sarah Chen', question_im_carrying:'Can a map ever honour what it fails to capture?', tags:['more-than-human','storytelling'] },
+  { id:4, x:-0.22, y:0.25, participant_name:'Dev Anand', question_im_carrying:'Who owns the pattern when the pattern emerges from community?', tags:['data sovereignty','governance'] },
+  { id:5, x:-0.31, y:0.18, participant_name:'Marta Osei', question_im_carrying:'What would it mean to design infrastructure that grieves?', tags:['more-than-human','urban systems'] },
+  { id:6, x:0.25, y:-0.20, participant_name:'Tom Nguyen', question_im_carrying:'How do we build civic tools that don\'t require users to already be powerful?', tags:['civic infrastructure','community practice'] },
+  { id:7, x:0.32, y:-0.28, participant_name:'Aroha Ngata', question_im_carrying:'When AI speaks Country, who is speaking?', tags:['country','data sovereignty'] },
+  { id:8, x:0.20, y:-0.15, participant_name:'Priya Mehta', question_im_carrying:'Is there a form of collective intelligence that resists quantification?', tags:['collective intelligence','ecology'] },
+  { id:9, x:0.38, y:-0.22, participant_name:'James Okafor', question_im_carrying:'What does a city know that its planners don\'t?', tags:['urban systems','governance'] },
+  { id:10, x:0.28, y:-0.32, participant_name:'Clara Russo', question_im_carrying:'How do we make AI legible to the people it affects most?', tags:['governance','technology critique'] },
+  { id:11, x:0.05, y:0.38, participant_name:'Wiremu Tane', question_im_carrying:'Can data sovereignty be practised without land sovereignty?', tags:['country','data sovereignty'] },
+  { id:12, x:-0.05, y:0.42, participant_name:'Aiko Tanaka', question_im_carrying:'What intelligences are we already ignoring?', tags:['more-than-human','ecology'] },
+  { id:13, x:0.10, y:0.35, participant_name:'Ben Hartley', question_im_carrying:'How do we slow AI down without slowing justice down?', tags:['governance','technology critique'] },
+  { id:14, x:-0.55, y:-0.10, participant_name:'Natalie Cross', question_im_carrying:'What would a mycelium-modelled data network look like?', tags:['ecology','more-than-human'] },
+  { id:15, x:0.48, y:0.12, participant_name:'Ravi Kumar', question_im_carrying:'Where does the river think the city begins?', tags:['water','country'] },
+  { id:16, x:-0.70, y:0.50, participant_name:'A. Park', question_im_carrying:'What if the error is the signal?', tags:['technology critique'] },
+  { id:17, x:0.65, y:-0.55, participant_name:'F. Osei', question_im_carrying:'Who decides what counts as knowing?', tags:['governance'] },
+  { id:18, x:-0.15, y:-0.60, participant_name:'L. Vargas', question_im_carrying:'Can care be a design constraint?', tags:['community practice'] },
+  { id:19, x:0.60, y:0.45, participant_name:'M. Singh', question_im_carrying:'What does the soil remember?', tags:['ecology','country'] },
+  { id:20, x:-0.65, y:-0.45, participant_name:'C. Adeyemi', question_im_carrying:'How do you map what hasn\'t happened yet?', tags:['storytelling'] },
+];
+
+// ─── State ──────────────────────────────────────────────────────────────────
+let BRIEFS = [];
+let ALL_TAGS = [];
+let selectedFormTags = new Set();
+let submittedBrief = null;
+let hasSubmitted = localStorage.getItem('ci_submitted') === 'true';
+
+// ─── Canvas 2D terrain renderer ─────────────────────────────────────────────
+const canvas = document.getElementById('terrain-canvas');
+const ctx = canvas.getContext('2d');
+
+function drawTerrain(briefs) {
+  const frame = document.getElementById('terrain-frame');
+  const dpr = Math.min(window.devicePixelRatio, 2);
+  const w = frame.clientWidth;
+  const h = frame.clientHeight;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+  ctx.scale(dpr, dpr);
+
+  if (briefs.length === 0) return;
+
+  const GRID = 128;
+  const hmap = buildHeightmap(GRID, briefs);
+
+  // Draw heightmap as colored pixels
+  const imgData = ctx.createImageData(GRID, GRID);
+  for (let i = 0; i < GRID * GRID; i++) {
+    const v = hmap[i];
+    // warm grey → dusty rose → mauve
+    let r, g, b;
+    if (v < 0.4) {
+      const t = v / 0.4;
+      r = 220 + t * 18; g = 210 + t * 4; b = 210 + t * 12;
+    } else {
+      const t = (v - 0.4) / 0.6;
+      r = 238 - t * 10; g = 214 - t * 30; b = 222 - t * 10;
+    }
+    imgData.data[i*4]   = r;
+    imgData.data[i*4+1] = g;
+    imgData.data[i*4+2] = b;
+    imgData.data[i*4+3] = 255;
+  }
+
+  // Scale up to canvas size
+  const tmpCanvas = document.createElement('canvas');
+  tmpCanvas.width = GRID;
+  tmpCanvas.height = GRID;
+  tmpCanvas.getContext('2d').putImageData(imgData, 0, 0);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(tmpCanvas, 0, 0, w, h);
+
+  // Contour lines
+  ctx.strokeStyle = 'rgba(106,72,85,0.22)';
+  ctx.lineWidth = 0.5;
+  const cellW = w / GRID;
+  const cellH = h / GRID;
+
+  for (const level of [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]) {
+    ctx.beginPath();
+    for (let row = 0; row < GRID - 1; row++) {
+      for (let col = 0; col < GRID - 1; col++) {
+        const h00 = hmap[row*GRID+col];
+        const h10 = hmap[row*GRID+col+1];
+        const h01 = hmap[(row+1)*GRID+col];
+        const h11 = hmap[(row+1)*GRID+col+1];
+        const x0 = col*cellW, x1 = (col+1)*cellW;
+        const y0 = row*cellH, y1 = (row+1)*cellH;
+        function interp(ha,hb,a,b){return a+(b-a)*(level-ha)/(hb-ha)}
+        let code=0;
+        if(h00>level)code|=1;if(h10>level)code|=2;if(h11>level)code|=4;if(h01>level)code|=8;
+        const top=code&1&&!(code&2)||!(code&1)&&code&2?{x:interp(h00,h10,x0,x1),y:y0}:null;
+        const right=code&2&&!(code&4)||!(code&2)&&code&4?{x:x1,y:interp(h10,h11,y0,y1)}:null;
+        const bottom=code&4&&!(code&8)||!(code&4)&&code&8?{x:interp(h11,h01,x1,x0),y:y1}:null;
+        const left=code&8&&!(code&1)||!(code&8)&&code&1?{x:x0,y:interp(h01,h00,y1,y0)}:null;
+        const verts=[top,right,bottom,left].filter(Boolean);
+        if(verts.length===2){ctx.moveTo(verts[0].x,verts[0].y);ctx.lineTo(verts[1].x,verts[1].y)}
+      }
+    }
+    ctx.stroke();
+  }
+
+  // Brief dots
+  for (const b of briefs) {
+    const bx = (b.x + 1) / 2 * w;
+    const by = (b.y + 1) / 2 * h;
+    const c = clusterInfo(b.tags);
+    ctx.beginPath();
+    ctx.arc(bx, by, 3.5, 0, Math.PI * 2);
+    ctx.fillStyle = c.hex;
+    ctx.globalAlpha = 0.7;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  // Position cluster labels
+  positionClusterLabels(briefs, w, h);
+}
+
+function positionClusterLabels(briefs, w, h) {
+  const labelsEl = document.getElementById('cluster-labels');
+  labelsEl.innerHTML = '';
+
+  const clusters = {};
+  for (const b of briefs) {
+    const c = clusterInfo(b.tags);
+    if (!clusters[c.name]) clusters[c.name] = { xs: [], ys: [], label: c.label, name: c.name };
+    clusters[c.name].xs.push(b.x);
+    clusters[c.name].ys.push(b.y);
+  }
+
+  for (const key of Object.keys(clusters)) {
+    const cl = clusters[key];
+    const cx = cl.xs.reduce((a,b)=>a+b,0) / cl.xs.length;
+    const cy = cl.ys.reduce((a,b)=>a+b,0) / cl.ys.length;
+    const px = ((cx + 1) / 2 * 100);
+    const py = ((cy + 1) / 2 * 100);
+    const el = document.createElement('div');
+    el.className = `cluster-label ${cl.name}`;
+    el.textContent = cl.label;
+    el.style.left = px + '%';
+    el.style.top = py + '%';
+    labelsEl.appendChild(el);
+  }
+}
+
+// ─── Stats + sidebar ────────────────────────────────────────────────────────
+function updateStats() {
+  document.getElementById('stat-briefs').textContent = BRIEFS.length || '—';
+
+  // Count distinct clusters
+  const seen = new Set();
+  for (const b of BRIEFS) seen.add(clusterInfo(b.tags).name);
+  document.getElementById('stat-clusters').textContent = seen.size || '—';
+}
+
+// Brief preview rotation
+let previewIdx = 0;
+function showPreview(b) {
+  if (!b) return;
+  const c = clusterInfo(b.tags);
+  document.getElementById('pv-bar').style.background = c.hex;
+  document.getElementById('pv-name').textContent = b.participant_name || 'Anonymous';
+  document.getElementById('pv-q').textContent = '\u201c' + b.question_im_carrying + '\u201d';
+  document.getElementById('pv-tags').innerHTML = b.tags.map(t =>
+    `<span class="preview-tag ${tagAccentClass(t)}">${t}</span>`
+  ).join('');
+}
+
+function rotatePreview() {
+  if (BRIEFS.length === 0) return;
+  const el = document.getElementById('brief-preview');
+  el.style.opacity = '0';
+  setTimeout(() => {
+    previewIdx = (previewIdx + 1) % BRIEFS.length;
+    showPreview(BRIEFS[previewIdx]);
+    el.style.opacity = '1';
+  }, 300);
+}
+
+setInterval(rotatePreview, 8000);
+
+// ─── Scroll transition ─────────────────────────────────────────────────────
+const terrainFrame = document.getElementById('terrain-frame');
+const statsSidebar = document.getElementById('stats-sidebar');
+
+function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+let ticking = false;
+window.addEventListener('scroll', () => {
+  if (!ticking) {
+    requestAnimationFrame(() => {
+      const vh = window.innerHeight;
+      const p = clamp(window.scrollY / (vh * 0.6), 0, 1);
+      terrainFrame.style.transform = `scale(${1 - p * 0.3})`;
+      terrainFrame.style.opacity = `${1 - p * 0.8}`;
+      statsSidebar.style.opacity = `${1 - p}`;
+      ticking = false;
+    });
+    ticking = true;
+  }
+});
+
+// IntersectionObserver for invitation text fade-in
+const invitationSection = document.getElementById('invitation');
+const invObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) invitationSection.classList.add('in-view');
+  });
+}, { threshold: 0.15 });
+invObs.observe(invitationSection);
+
+// ─── Form logic ─────────────────────────────────────────────────────────────
+const formOverlay = document.getElementById('form-overlay');
+const navCta = document.getElementById('nav-cta');
+
+function openForm() {
+  if (hasSubmitted) return;
+  formOverlay.classList.add('open');
+}
+
+function closeForm() { formOverlay.classList.remove('open'); }
+
+navCta.addEventListener('click', () => {
+  if (hasSubmitted) {
+    window.location.href = '/terrain.html';
+  } else {
+    openForm();
+  }
+});
+
+document.getElementById('cta-enter').addEventListener('click', () => openForm());
+document.getElementById('form-close').addEventListener('click', closeForm);
+formOverlay.addEventListener('click', e => { if (e.target === formOverlay) closeForm(); });
+
+// Progress dots
+const fields = ['f-who', 'f-working', 'f-question', 'f-push'];
+function updateDots() {
+  fields.forEach((id, i) => {
+    const hasContent = document.getElementById(id).value.trim().length > 0;
+    document.getElementById('dot-' + i).classList.toggle('filled', hasContent);
+  });
+}
+fields.forEach(id => {
+  document.getElementById(id).addEventListener('input', updateDots);
+});
+
+// Tag chips
+function renderFormTags() {
+  const el = document.getElementById('form-tags');
+  el.innerHTML = ALL_TAGS.map(t =>
+    `<button type="button" class="tag-chip ${selectedFormTags.has(t.id) ? 'selected' : ''}" data-id="${t.id}">${t.label}</button>`
+  ).join('');
+  el.querySelectorAll('.tag-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const id = chip.dataset.id;
+      if (selectedFormTags.has(id)) { selectedFormTags.delete(id); chip.classList.remove('selected'); }
+      else { selectedFormTags.add(id); chip.classList.add('selected'); }
+    });
+  });
+}
+
+// + add your own
+const addTagBtn = document.getElementById('add-tag-btn');
+const addTagInput = document.getElementById('add-tag-input');
+
+addTagBtn.addEventListener('click', () => {
+  addTagInput.style.display = 'block';
+  addTagInput.focus();
+  addTagBtn.style.display = 'none';
+});
+
+addTagInput.addEventListener('keydown', async (e) => {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  const label = addTagInput.value.trim().toLowerCase();
+  if (!label) return;
+
+  try {
+    const res = await fetch('/api/tags', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ label }),
+    });
+    if (res.ok) {
+      const tag = await res.json();
+      ALL_TAGS.push(tag);
+      selectedFormTags.add(tag.id);
+    }
+  } catch {
+    // Offline — add locally
+    const fakeTag = { id: 'local-' + Date.now(), label, is_seed: false };
+    ALL_TAGS.push(fakeTag);
+    selectedFormTags.add(fakeTag.id);
+  }
+
+  addTagInput.value = '';
+  addTagInput.style.display = 'none';
+  addTagBtn.style.display = '';
+  renderFormTags();
+});
+
+// Submit
+document.getElementById('brief-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const question = document.getElementById('f-question').value.trim();
+  if (!question) {
+    document.getElementById('f-question').style.borderColor = '#c8286e';
+    return;
+  }
+
+  const submitBtn = document.getElementById('form-submit');
+  submitBtn.disabled = true;
+  submitBtn.classList.add('submitting');
+
+  const who = document.getElementById('f-who').value.trim();
+  const body = {
+    participant_name: who || null,
+    practice_area: who || null,
+    what_im_working_on: document.getElementById('f-working').value.trim() || null,
+    question_im_carrying: question,
+    what_push_i_want: document.getElementById('f-push').value.trim() || null,
+    tag_ids: [...selectedFormTags].filter(id => !id.startsWith('seed-') && !id.startsWith('local-')),
+  };
+
+  try {
+    const res = await fetch('/api/briefs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) throw new Error(`${res.status}`);
+    const result = await res.json();
+
+    submittedBrief = {
+      ...result,
+      participant_name: body.participant_name,
+      question_im_carrying: question,
+      tags: ALL_TAGS.filter(t => selectedFormTags.has(t.id)).map(t => t.label),
+    };
+  } catch {
+    // Offline fallback
+    submittedBrief = {
+      participant_name: body.participant_name,
+      question_im_carrying: question,
+      tags: ALL_TAGS.filter(t => selectedFormTags.has(t.id)).map(t => t.label),
+    };
+  }
+
+  localStorage.setItem('ci_submitted', 'true');
+  hasSubmitted = true;
+  closeForm();
+  showConfirmation();
+});
+
+// ─── Confirmation ───────────────────────────────────────────────────────────
+function showConfirmation() {
+  // Hide landing + invitation
+  document.getElementById('state-landing').style.display = 'none';
+  document.getElementById('invitation').style.display = 'none';
+
+  // Show confirmation
+  document.getElementById('state-confirmation').classList.add('visible');
+
+  // Update navbar
+  navCta.textContent = 'explore the landscape →';
+
+  // Render submitted brief card
+  if (submittedBrief) {
+    const c = clusterInfo(submittedBrief.tags || []);
+    document.getElementById('sc-bar').style.background = c.hex;
+    document.getElementById('sc-name').textContent = submittedBrief.participant_name || 'Your name';
+    document.getElementById('sc-q').textContent = '\u201c' + submittedBrief.question_im_carrying + '\u201d';
+    document.getElementById('sc-tags').innerHTML = (submittedBrief.tags || []).map(t =>
+      `<span class="preview-tag ${tagAccentClass(t)}">${t}</span>`
+    ).join('');
+  }
+}
+
+// ─── Data loading ───────────────────────────────────────────────────────────
+async function loadBriefs() {
+  try {
+    const res = await fetch('/api/briefs');
+    if (!res.ok) throw new Error(`${res.status}`);
+    BRIEFS = await res.json();
+  } catch {
+    BRIEFS = FALLBACK_BRIEFS;
+  }
+  drawTerrain(BRIEFS);
+  updateStats();
+  if (BRIEFS.length > 0) showPreview(BRIEFS[0]);
+}
+
+async function loadTags() {
+  try {
+    const res = await fetch('/api/tags');
+    if (!res.ok) throw new Error(`${res.status}`);
+    ALL_TAGS = await res.json();
+  } catch {
+    ALL_TAGS = ['water','country','infrastructure','ecology','data sovereignty','collective intelligence',
+      'urban systems','storytelling','governance','more-than-human','community practice','technology critique'
+    ].map((label, i) => ({ id: 'seed-' + i, label, is_seed: true }));
+  }
+  renderFormTags();
+}
+
+// ─── Init ───────────────────────────────────────────────────────────────────
+if (hasSubmitted) {
+  navCta.textContent = 'explore the landscape →';
+}
+
+loadTags();
+loadBriefs();
+
+// Redraw canvas on resize
+window.addEventListener('resize', () => { if (BRIEFS.length) drawTerrain(BRIEFS); });
+</script>
+</body>
+</html>
