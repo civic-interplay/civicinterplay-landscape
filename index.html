@@ -3,20 +3,38 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Civic.Interplay — Gathering Intelligences</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=Spectral:ital,wght@0,300;0,400;1,300&display=swap');
+<title>Civic.Interplay · Gathering Intelligences</title>
 
+<!-- Fonts: preconnect early, then load the stylesheet without blocking @import.
+     `display=swap` keeps text readable while fonts arrive. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Spectral:ital,wght@0,300;0,400;1,300;1,400&display=swap">
+
+<style>
   :root {
     --bg-dark: #2a1f24;
     --bg-cream: #f0eaec;
     --magenta: #c8286e;
     --sage: #4a7a56;
     --mauve: #9a6678;
-    --text-light: rgba(228,218,218,0.55);
-    --text-dark: rgba(60,35,45,0.72);
-    --text-muted: rgba(60,35,45,0.4);
-    --border: rgba(100,70,80,0.15);
+
+    /* Channel tokens — let any rgba() be authored as rgb(var(--*-rgb) / α).
+       Tweak the palette in one place. */
+    --magenta-rgb: 200 40 110;
+    --sage-rgb:    74 122 86;
+    --mauve-rgb:   154 102 120;
+    --text-rgb:        60 35 45;   /* primary body-text base on cream */
+    --text-dark-rgb:   50 28 38;   /* deeper variant for emphasised prose */
+    --border-rgb:     100 70 80;   /* neutral edge / divider */
+    --bg-dark-rgb:    42 31 36;
+    --text-light-rgb: 228 218 218; /* on-dark text, used by terrain + overlays */
+
+    --text-light: rgb(var(--text-light-rgb) / 0.55);
+    --text-dark: rgb(var(--text-dark-rgb) / 0.92);
+    --text-muted: rgb(var(--text-rgb) / 0.7);
+    --text-quiet: rgb(var(--text-rgb) / 0.55);
+    --border: rgb(var(--border-rgb) / 0.3);
     --font-display: 'Cormorant Garamond', Georgia, serif;
     --font-body: 'Spectral', Georgia, serif;
   }
@@ -46,16 +64,19 @@
     border-bottom: 0.5px solid var(--border);
   }
 
-  .navbar-left {
+  /* `navbar-left` is the document's <h1> — visual styling stays the same as
+     the original wordmark, but screen readers now read it as the page heading. */
+  h1.navbar-left {
     font-family: var(--font-display);
     font-size: 12px;
-    font-weight: 400;
+    font-weight: 500;
     letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: rgba(60,35,45,0.6);
+    color: rgb(var(--text-rgb) / 0.85);
+    margin: 0;
   }
 
-  .navbar-left em { font-style: normal; color: var(--magenta); }
+  h1.navbar-left em { font-style: normal; color: var(--magenta); }
 
   .navbar-center {
     display: flex;
@@ -64,8 +85,8 @@
 
   .navbar-center a {
     font-family: var(--font-body);
-    font-size: 11px;
-    font-weight: 300;
+    font-size: 12px;
+    font-weight: 400;
     font-style: italic;
     color: var(--text-muted);
     text-decoration: none;
@@ -77,18 +98,26 @@
 
   .nav-cta {
     font-family: var(--font-body);
-    font-size: 11px;
-    font-weight: 300;
+    font-size: 12px;
+    font-weight: 400;
     letter-spacing: 0.08em;
     color: var(--magenta);
-    border: 0.5px solid rgba(200,40,110,0.4);
-    padding: 6px 14px;
+    border: 0.5px solid rgb(var(--magenta-rgb) / 0.55);
+    padding: 0 16px;
+    min-height: 36px;     /* navbar is 48px tall, leaves comfortable margin */
+    display: inline-flex;
+    align-items: center;
     cursor: pointer;
     background: transparent;
-    transition: all 0.25s;
+    transition: background-color 0.25s, border-color 0.25s, color 0.25s;
   }
 
-  .nav-cta:hover { background: rgba(200,40,110,0.06); border-color: var(--magenta); }
+  /* On coarse pointers, extend the navbar CTA hit area to meet WCAG 2.5.5 */
+  @media (pointer: coarse) {
+    .nav-cta { min-height: 44px; padding: 0 18px; }
+  }
+
+  .nav-cta:hover { background: rgb(var(--magenta-rgb) / 0.06); border-color: var(--magenta); }
 
   /* ─── State 01: Landing ──────────────────────────────────────────── */
   .state-landing {
@@ -108,7 +137,7 @@
   .terrain-frame {
     flex: 1;
     position: relative;
-    border: 0.5px solid rgba(100,70,80,0.2);
+    border: 0.5px solid rgb(var(--border-rgb) / 0.2);
     overflow: hidden;
     will-change: transform, opacity;
     transform-origin: center top;
@@ -123,12 +152,12 @@
   .cluster-label {
     position: absolute;
     font-family: var(--font-body);
-    font-size: 9px;
-    font-weight: 300;
+    font-size: 11px;
+    font-weight: 500;
     font-style: italic;
     letter-spacing: 0.04em;
     pointer-events: none;
-    opacity: 0.55;
+    opacity: 0.92;
     white-space: nowrap;
   }
 
@@ -141,10 +170,10 @@
     bottom: 0.8rem;
     left: 50%;
     transform: translateX(-50%);
-    font-size: 10px;
-    font-weight: 300;
+    font-size: 12px;
+    font-weight: 400;
     font-style: italic;
-    color: rgba(60,35,45,0.25);
+    color: rgb(var(--text-rgb) / 0.78);
     letter-spacing: 0.06em;
     white-space: nowrap;
   }
@@ -162,28 +191,28 @@
 
   .stat-n {
     font-family: var(--font-display);
-    font-size: 32px;
+    font-size: 36px;
     font-weight: 300;
-    color: rgba(60,35,45,0.5);
+    color: rgb(var(--text-rgb) / 0.85);
     line-height: 1;
     display: block;
   }
 
   .stat-label {
-    font-size: 10px;
-    font-weight: 300;
+    font-size: 12px;
+    font-weight: 400;
     font-style: italic;
-    color: var(--text-muted);
+    color: rgb(var(--text-rgb) / 0.85);
     letter-spacing: 0.04em;
   }
 
   .nearby-heading {
     font-family: var(--font-display);
-    font-size: 10px;
-    font-weight: 300;
+    font-size: 12px;
+    font-weight: 500;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: var(--text-muted);
+    color: rgb(var(--text-rgb) / 0.88);
     margin-bottom: 0.7rem;
     margin-top: 0.5rem;
   }
@@ -204,17 +233,17 @@
 
   .preview-name {
     font-family: var(--font-display);
-    font-size: 10px;
-    font-weight: 400;
+    font-size: 12px;
+    font-weight: 500;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: var(--text-muted);
-    margin-bottom: 0.3rem;
+    color: rgb(var(--text-rgb) / 0.88);
+    margin-bottom: 0.35rem;
   }
 
   .preview-q {
-    font-size: 12px;
-    font-weight: 300;
+    font-size: 13px;
+    font-weight: 400;
     font-style: italic;
     color: var(--text-dark);
     line-height: 1.5;
@@ -228,26 +257,27 @@
   }
 
   .preview-tag {
-    font-size: 9px;
-    font-weight: 300;
+    font-size: 11px;
+    font-weight: 400;
     letter-spacing: 0.04em;
-    padding: 1px 6px;
-    border: 0.5px solid rgba(100,70,80,0.2);
-    color: var(--text-muted);
+    padding: 2px 7px;
+    border: 0.5px solid rgb(var(--border-rgb) / 0.5);
+    color: rgb(var(--text-rgb) / 0.85);
   }
 
-  .preview-tag.t-magenta { color: var(--magenta); border-color: rgba(200,40,110,0.25); }
-  .preview-tag.t-sage { color: var(--sage); border-color: rgba(74,122,86,0.25); }
-  .preview-tag.t-mauve { color: var(--mauve); border-color: rgba(154,102,120,0.25); }
+  /* Tag-pill text uses readable darker tints; brand colors live on the borders */
+  .preview-tag.t-magenta { color: #a01f56; border-color: rgb(var(--magenta-rgb) / 0.42); }
+  .preview-tag.t-sage    { color: #3d6448; border-color: rgb(var(--sage-rgb)    / 0.42); }
+  .preview-tag.t-mauve   { color: #7a4e5e; border-color: rgb(var(--mauve-rgb)   / 0.42); }
 
   /* Scroll prompt */
   .scroll-prompt {
     text-align: center;
     padding: 1.5rem 0 1rem;
-    font-size: 11px;
-    font-weight: 300;
+    font-size: 13px;
+    font-weight: 500;
     font-style: italic;
-    color: rgba(60,35,45,0.2);
+    color: rgb(var(--text-rgb) / 0.82);
     letter-spacing: 0.06em;
   }
 
@@ -266,12 +296,12 @@
     max-width: 580px;
   }
 
-  .invitation-content h1 {
+  .invitation-content h2 {
     font-family: var(--font-body);
     font-size: 32px;
-    font-weight: 300;
+    font-weight: 400;
     font-style: italic;
-    color: rgba(60,35,45,0.75);
+    color: rgb(var(--text-dark-rgb) / 0.92);
     margin-bottom: 2rem;
     opacity: 0;
     transform: translateY(16px);
@@ -279,9 +309,9 @@
   }
 
   .invitation-content p {
-    font-size: 14px;
-    font-weight: 300;
-    color: rgba(60,35,45,0.6);
+    font-size: 15px;
+    font-weight: 400;
+    color: rgb(var(--text-dark-rgb) / 0.85);
     line-height: 1.75;
     margin-bottom: 1.3rem;
     opacity: 0;
@@ -294,9 +324,9 @@
     padding-left: 1.2rem;
     margin: 1.6rem 0;
     font-style: italic;
-    font-size: 14px;
-    font-weight: 300;
-    color: rgba(60,35,45,0.65);
+    font-size: 15px;
+    font-weight: 400;
+    color: rgb(var(--text-dark-rgb) / 0.88);
     line-height: 1.7;
     opacity: 0;
     transform: translateY(12px);
@@ -304,7 +334,7 @@
   }
 
   /* Staggered fade-in */
-  .state-invitation.in-view h1 { opacity: 1; transform: translateY(0); }
+  .state-invitation.in-view h2 { opacity: 1; transform: translateY(0); }
   .state-invitation.in-view p:nth-child(2) { opacity: 1; transform: translateY(0); transition-delay: 0.15s; }
   .state-invitation.in-view blockquote { opacity: 1; transform: translateY(0); transition-delay: 0.3s; }
   .state-invitation.in-view p:nth-child(4) { opacity: 1; transform: translateY(0); transition-delay: 0.45s; }
@@ -312,23 +342,25 @@
   .state-invitation.in-view .cta-enter { opacity: 1; transform: translateY(0); transition-delay: 0.75s; }
 
   .cta-enter {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
     margin-top: 1.5rem;
     font-family: var(--font-body);
-    font-size: 12px;
-    font-weight: 300;
+    font-size: 13px;
+    font-weight: 400;
     letter-spacing: 0.08em;
     color: var(--magenta);
-    border: 0.5px solid rgba(200,40,110,0.4);
-    padding: 10px 20px;
+    border: 0.5px solid rgb(var(--magenta-rgb) / 0.55);
+    padding: 0 22px;
+    min-height: 44px;
     cursor: pointer;
     background: transparent;
-    transition: all 0.25s;
+    transition: background-color 0.25s, border-color 0.25s;
     opacity: 0;
     transform: translateY(12px);
   }
 
-  .cta-enter:hover { background: rgba(200,40,110,0.06); border-color: var(--magenta); }
+  .cta-enter:hover { background: rgb(var(--magenta-rgb) / 0.06); border-color: var(--magenta); }
 
   /* ─── State 03: Form Overlay ─────────────────────────────────────── */
   .form-overlay {
@@ -338,7 +370,7 @@
     display: none;
     align-items: center;
     justify-content: center;
-    background: rgba(42,31,36,0.4);
+    background: rgb(var(--bg-dark-rgb) / 0.4);
     backdrop-filter: blur(3px);
   }
 
@@ -367,22 +399,25 @@
 
   .form-header-title {
     font-family: var(--font-display);
-    font-size: 10px;
-    font-weight: 300;
-    letter-spacing: 0.14em;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: var(--text-muted);
+    color: rgb(var(--text-rgb) / 0.92);
+    flex: 1;
+    padding-right: 1rem;
+    line-height: 1.4;
   }
 
   .form-close {
     font-family: var(--font-body);
-    font-size: 11px;
-    font-weight: 300;
-    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 500;
+    color: rgb(var(--text-rgb) / 0.85);
     background: none;
     border: none;
     cursor: pointer;
-    padding: 0;
+    padding: 6px 8px;
     letter-spacing: 0.04em;
   }
 
@@ -391,9 +426,9 @@
   .form-subtitle {
     font-family: var(--font-body);
     font-size: 22px;
-    font-weight: 300;
+    font-weight: 400;
     font-style: italic;
-    color: rgba(60,35,45,0.65);
+    color: rgb(var(--text-dark-rgb) / 0.92);
     margin-bottom: 1.2rem;
     line-height: 1.3;
   }
@@ -408,7 +443,7 @@
   .dot {
     width: 8px;
     height: 8px;
-    border: 0.5px solid rgba(100,70,80,0.25);
+    border: 0.5px solid rgb(var(--border-rgb) / 0.25);
     background: transparent;
     transition: background 0.3s, border-color 0.3s;
   }
@@ -426,20 +461,20 @@
   .form-group label {
     display: block;
     font-family: var(--font-display);
-    font-size: 10px;
-    font-weight: 300;
+    font-size: 12px;
+    font-weight: 500;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: var(--text-muted);
-    margin-bottom: 0.15rem;
+    color: rgb(var(--text-rgb) / 0.92);
+    margin-bottom: 0.2rem;
   }
 
   .form-sublabel {
-    font-size: 10px;
-    font-weight: 300;
+    font-size: 12px;
+    font-weight: 400;
     font-style: italic;
-    color: rgba(60,35,45,0.28);
-    margin-bottom: 0.4rem;
+    color: rgb(var(--text-rgb) / 0.82);
+    margin-bottom: 0.45rem;
     display: block;
   }
 
@@ -448,18 +483,18 @@
   .form-group select {
     width: 100%;
     font-family: var(--font-body);
-    font-size: 13px;
-    font-weight: 300;
+    font-size: 14px;
+    font-weight: 400;
     color: var(--text-dark);
     background: transparent;
-    border: 0.5px solid rgba(100,70,80,0.18);
+    border: 0.5px solid rgb(var(--border-rgb) / 0.35);
     padding: 0.55rem 0.7rem;
     outline: none;
     transition: border-color 0.2s;
   }
 
   .form-group input:focus,
-  .form-group textarea:focus { border-color: rgba(200,40,110,0.35); }
+  .form-group textarea:focus { border-color: rgb(var(--magenta-rgb) / 0.35); }
 
   .form-group textarea {
     resize: vertical;
@@ -470,7 +505,8 @@
   .form-group input::placeholder,
   .form-group textarea::placeholder {
     font-style: italic;
-    color: rgba(60,35,45,0.22);
+    font-weight: 400;
+    color: rgb(var(--text-rgb) / 0.7);
   }
 
   /* Key question field — emphasized */
@@ -481,11 +517,11 @@
   /* Tags */
   .tag-section-label {
     font-family: var(--font-display);
-    font-size: 10px;
-    font-weight: 300;
+    font-size: 11px;
+    font-weight: 500;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: var(--text-muted);
+    color: rgb(var(--text-rgb) / 0.78);
     margin-bottom: 0.5rem;
   }
 
@@ -497,76 +533,98 @@
   }
 
   .tag-chip {
-    font-size: 10px;
+    position: relative;
+    font-size: 12px;
     font-family: var(--font-body);
-    font-weight: 300;
+    font-weight: 400;
     letter-spacing: 0.04em;
-    color: var(--text-muted);
-    border: 0.5px solid rgba(100,70,80,0.2);
-    padding: 3px 8px;
+    color: rgb(var(--text-rgb) / 0.85);
+    border: 0.5px solid rgb(var(--border-rgb) / 0.5);
+    padding: 4px 9px;
     cursor: pointer;
     background: transparent;
-    transition: all 0.2s;
+    transition: color 0.2s, border-color 0.2s, background-color 0.2s;
+  }
+
+  /* Expand chip hit area on touch without bloating visual size */
+  @media (pointer: coarse) {
+    .tag-chip::after,
+    .add-tag-btn::after {
+      content: "";
+      position: absolute;
+      inset: -12px -6px;
+    }
+    .tag-chips { gap: 14px 6px; }
+    .add-tag-btn { position: relative; }
   }
 
   .tag-chip.selected {
     color: var(--magenta);
-    border-color: rgba(200,40,110,0.4);
-    background: rgba(200,40,110,0.04);
+    border-color: rgb(var(--magenta-rgb) / 0.4);
+    background: rgb(var(--magenta-rgb) / 0.04);
+  }
+
+  .add-tag-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
   }
 
   .add-tag-btn {
     font-family: var(--font-body);
-    font-size: 10px;
-    font-weight: 300;
+    font-size: 12px;
+    font-weight: 400;
     font-style: italic;
     color: var(--magenta);
     background: none;
     border: none;
     cursor: pointer;
-    padding: 3px 0;
-    opacity: 0.7;
+    padding: 4px 0;
+    opacity: 0.92;
   }
 
   .add-tag-btn:hover { opacity: 1; }
 
   .add-tag-input {
     font-family: var(--font-body);
-    font-size: 10px;
-    font-weight: 300;
+    font-size: 12px;
+    font-weight: 400;
     color: var(--text-dark);
-    border: 0.5px solid rgba(200,40,110,0.3);
-    padding: 3px 8px;
+    border: 0.5px solid rgb(var(--magenta-rgb) / 0.45);
+    padding: 4px 8px;
     outline: none;
-    width: 120px;
+    width: 140px;
     display: none;
   }
 
   .form-footer-text {
-    font-size: 10px;
-    font-weight: 300;
+    font-size: 13px;
+    font-weight: 400;
     font-style: italic;
-    color: rgba(60,35,45,0.3);
+    color: rgb(var(--text-rgb) / 0.85);
     margin-top: 1.2rem;
-    line-height: 1.5;
+    line-height: 1.55;
   }
 
   .form-submit {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
     margin-top: 1rem;
     font-family: var(--font-body);
-    font-size: 12px;
-    font-weight: 300;
+    font-size: 13px;
+    font-weight: 400;
     letter-spacing: 0.08em;
     color: var(--magenta);
-    border: 0.5px solid rgba(200,40,110,0.4);
-    padding: 10px 20px;
+    border: 0.5px solid rgb(var(--magenta-rgb) / 0.55);
+    padding: 0 22px;
+    min-height: 44px;
     cursor: pointer;
     background: transparent;
-    transition: all 0.25s;
+    transition: background-color 0.25s, border-color 0.25s;
   }
 
-  .form-submit:hover { background: rgba(200,40,110,0.06); }
+  .form-submit:hover { background: rgb(var(--magenta-rgb) / 0.06); }
   .form-submit:disabled { opacity: 0.3; cursor: default; }
 
   .form-submit.submitting {
@@ -574,8 +632,8 @@
   }
 
   @keyframes pulse-border {
-    0%, 100% { border-color: rgba(200,40,110,0.4); }
-    50% { border-color: rgba(200,40,110,0.8); }
+    0%, 100% { border-color: rgb(var(--magenta-rgb) / 0.4); }
+    50% { border-color: rgb(var(--magenta-rgb) / 0.8); }
   }
 
   /* ─── State 04: Confirmation ─────────────────────────────────────── */
@@ -613,41 +671,43 @@
     margin-bottom: 1.5rem;
   }
 
-  .confirmation-left h1 {
+  .confirmation-left h2 {
     font-family: var(--font-body);
-    font-size: 26px;
-    font-weight: 300;
+    font-size: 28px;
+    font-weight: 400;
     font-style: italic;
-    color: rgba(60,35,45,0.7);
+    color: rgb(var(--text-dark-rgb) / 0.92);
     line-height: 1.35;
     margin-bottom: 1.5rem;
   }
 
   .confirmation-left p {
-    font-size: 13px;
-    font-weight: 300;
-    color: rgba(60,35,45,0.55);
+    font-size: 14px;
+    font-weight: 400;
+    color: rgb(var(--text-dark-rgb) / 0.82);
     line-height: 1.7;
     margin-bottom: 1rem;
   }
 
   .cta-resonance {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
     margin-top: 1rem;
     font-family: var(--font-body);
-    font-size: 12px;
-    font-weight: 300;
+    font-size: 13px;
+    font-weight: 400;
     letter-spacing: 0.06em;
     color: var(--magenta);
-    border: 0.5px solid rgba(200,40,110,0.4);
-    padding: 10px 18px;
+    border: 0.5px solid rgb(var(--magenta-rgb) / 0.55);
+    padding: 0 20px;
+    min-height: 44px;
     cursor: pointer;
     background: transparent;
     text-decoration: none;
-    transition: all 0.25s;
+    transition: background-color 0.25s, border-color 0.25s;
   }
 
-  .cta-resonance:hover { background: rgba(200,40,110,0.06); }
+  .cta-resonance:hover { background: rgb(var(--magenta-rgb) / 0.06); }
 
   .confirmation-right {
     width: 300px;
@@ -656,12 +716,12 @@
 
   .confirmation-right h3 {
     font-family: var(--font-display);
-    font-size: 10px;
-    font-weight: 300;
+    font-size: 12px;
+    font-weight: 500;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: var(--text-muted);
-    margin-bottom: 0.8rem;
+    color: rgb(var(--text-rgb) / 0.88);
+    margin-bottom: 0.85rem;
   }
 
   .submitted-card {
@@ -672,12 +732,12 @@
   .submitted-card .preview-bar { margin-bottom: 0.65rem; }
 
   .brief-footnote {
-    font-size: 11px;
-    font-weight: 300;
+    font-size: 13px;
+    font-weight: 400;
     font-style: italic;
-    color: rgba(60,35,45,0.35);
+    color: rgb(var(--text-rgb) / 0.85);
     line-height: 1.6;
-    margin-top: 0.8rem;
+    margin-top: 0.85rem;
   }
 
   /* Footer */
@@ -693,21 +753,21 @@
 
   .footer-material {
     flex: 1;
-    font-size: 10px;
-    font-weight: 300;
+    font-size: 12px;
+    font-weight: 400;
     font-style: italic;
-    color: rgba(60,35,45,0.25);
-    line-height: 1.6;
+    color: rgb(var(--text-rgb) / 0.82);
+    line-height: 1.65;
   }
 
   .footer-credits {
     text-align: right;
     font-family: var(--font-display);
-    font-size: 10px;
-    font-weight: 300;
+    font-size: 12px;
+    font-weight: 500;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: rgba(60,35,45,0.3);
+    color: rgb(var(--text-rgb) / 0.85);
     line-height: 1.6;
   }
 
@@ -715,9 +775,11 @@
     display: block;
     font-family: var(--font-body);
     font-style: italic;
+    font-weight: 400;
     text-transform: none;
     letter-spacing: 0;
-    font-size: 10px;
+    font-size: 12px;
+    color: rgb(var(--text-rgb) / 0.82);
   }
 
   /* Grain */
@@ -731,6 +793,106 @@
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
   }
 
+  /* ─── Accessibility scaffolding ──────────────────────────────────── */
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* Visible focus for keyboard users */
+  .nav-cta:focus-visible,
+  .cta-enter:focus-visible,
+  .form-submit:focus-visible,
+  .form-close:focus-visible,
+  .cta-resonance:focus-visible,
+  .tag-chip:focus-visible,
+  .add-tag-btn:focus-visible,
+  .navbar-center a:focus-visible,
+  #terrain-canvas:focus-visible {
+    outline: 2px solid var(--magenta);
+    outline-offset: 2px;
+  }
+
+  .form-group input:focus-visible,
+  .form-group textarea:focus-visible {
+    outline: 2px solid var(--magenta);
+    outline-offset: 1px;
+    border-color: rgb(var(--magenta-rgb) / 0.6);
+  }
+
+  #terrain-canvas { outline: none; }
+
+  /* Inline field validation */
+  .field-error {
+    display: none;
+    margin-top: 0.4rem;
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-style: italic;
+    color: var(--magenta);
+    letter-spacing: 0.02em;
+  }
+  .form-group [aria-invalid="true"] {
+    border-color: var(--magenta);
+  }
+  .form-group [aria-invalid="true"] ~ .field-error {
+    display: block;
+  }
+
+  /* Submit-error message */
+  .form-error {
+    display: none;
+    margin-top: 0.8rem;
+    padding: 0.5rem 0.7rem;
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-style: italic;
+    line-height: 1.5;
+    color: #8a1f4f;
+    border: 0.5px solid rgb(var(--magenta-rgb) / 0.45);
+    background: rgb(var(--magenta-rgb) / 0.05);
+  }
+  .form-error.visible { display: block; }
+
+  /* Pause-rotation affordance */
+  .preview-pause {
+    margin-top: 0.5rem;
+    font-family: var(--font-body);
+    font-size: 10px;
+    font-weight: 400;
+    font-style: italic;
+    letter-spacing: 0.04em;
+    color: rgb(var(--text-rgb) / 0.62);
+    background: transparent;
+    border: 0;
+    padding: 4px 0;
+    cursor: pointer;
+  }
+  .preview-pause:hover { color: var(--text-dark); }
+  .preview-pause:focus-visible { outline: 2px solid var(--magenta); outline-offset: 2px; }
+
+  /* Respect reduced-motion preference */
+  @media (prefers-reduced-motion: reduce) {
+    .invitation-content h1,
+    .invitation-content p,
+    .invitation-content blockquote,
+    .cta-enter {
+      opacity: 1 !important;
+      transform: none !important;
+      transition: none !important;
+    }
+    .form-submit.submitting { animation: none; }
+    .terrain-frame { transform: none !important; }
+    .brief-preview { transition: none; }
+  }
+
   /* ─── Responsive ─────────────────────────────────────────────────── */
   @media (max-width: 900px) {
     .landing-grid { flex-direction: column; }
@@ -742,23 +904,42 @@
   }
 
   @media (max-width: 600px) {
-    .navbar { padding: 0 1rem; }
-    .navbar-center { display: none; }
+    .navbar { padding: 0 1rem; gap: 0.6rem; }
+    /* Keep nav visible on mobile, just compact: drop "about" (the page is about),
+       keep "the landscape" since it's the actual destination */
+    .navbar-center { gap: 0; }
+    .navbar-center a:not([href="/terrain.html"]) { display: none; }
+    .navbar-center a {
+      font-size: 13px;
+      padding: 8px 4px;          /* taller hit target */
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+    }
+    .navbar-left { font-size: 11px; letter-spacing: 0.14em; }
+    .nav-cta { font-size: 11px; padding: 0 12px; min-height: 36px; }
     .state-landing { padding: 60px 1rem 1rem; }
     .state-invitation { padding: 4rem 1.2rem 2rem; }
     .invitation-content h1 { font-size: 24px; }
     .site-footer { flex-direction: column; }
     .footer-credits { text-align: left; }
   }
+
+  /* Nav links: 44px hit target, vertically centered in the 48px navbar */
+  .navbar-center a {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
 </style>
 </head>
 <body>
 
-<div class="grain"></div>
+<div class="grain" aria-hidden="true"></div>
 
 <!-- ─── Navbar ───────────────────────────────────────────────────── -->
-<nav class="navbar">
-  <div class="navbar-left">CIVIC<em>.</em>INTERPLAY</div>
+<nav class="navbar" aria-label="Primary">
+  <h1 class="navbar-left">CIVIC<em>.</em>INTERPLAY</h1>
   <div class="navbar-center">
     <a href="/terrain.html">the landscape</a>
     <a href="#invitation">about</a>
@@ -767,40 +948,45 @@
 </nav>
 
 <!-- ─── 01: Landing ─────────────────────────────────────────────── -->
-<section class="state-landing" id="state-landing">
+<section class="state-landing" id="state-landing" aria-label="The landscape preview">
   <div class="landing-grid">
     <div class="terrain-frame" id="terrain-frame">
-      <canvas id="terrain-canvas"></canvas>
-      <div id="cluster-labels"></div>
-      <div class="terrain-hint">drag to traverse · hover to read</div>
+      <canvas id="terrain-canvas" role="img" aria-label="A topographic preview of the landscape, shaped by submitted briefs. Magenta, mauve, and sage clusters represent thematic groupings."></canvas>
+      <div id="cluster-labels" aria-hidden="true"></div>
+      <div class="terrain-hint">a preview of the landscape · open it to traverse</div>
     </div>
-    <aside class="stats-sidebar" id="stats-sidebar">
+    <aside class="stats-sidebar" id="stats-sidebar" aria-label="Landscape statistics">
       <div class="stat-block">
-        <span class="stat-n" id="stat-briefs">—</span>
+        <span class="stat-n" id="stat-briefs" aria-live="polite">—</span>
         <span class="stat-label">briefs in the landscape</span>
       </div>
       <div class="stat-block">
-        <span class="stat-n" id="stat-clusters">—</span>
+        <span class="stat-n" id="stat-clusters" aria-live="polite">—</span>
         <span class="stat-label">clusters forming</span>
       </div>
       <div class="nearby-briefs">
-        <div class="nearby-heading">Nearby Briefs</div>
-        <div class="brief-preview" id="brief-preview">
-          <div class="preview-bar" id="pv-bar"></div>
+        <div class="nearby-heading" id="nearby-heading">Nearby Briefs</div>
+        <div class="brief-preview" id="brief-preview" aria-labelledby="nearby-heading" aria-live="polite" aria-atomic="true">
+          <div class="preview-bar" id="pv-bar" aria-hidden="true"></div>
           <div class="preview-name" id="pv-name"></div>
           <div class="preview-q" id="pv-q"></div>
           <div class="preview-tags" id="pv-tags"></div>
         </div>
+        <button type="button" class="preview-pause" id="preview-pause" aria-pressed="false">pause rotation</button>
       </div>
     </aside>
   </div>
-  <div class="scroll-prompt">↓ scroll down · the terrain recedes · text emerges</div>
+
+  <!-- Screen-reader / keyboard-accessible parallel list of briefs -->
+  <ul id="brief-list" class="visually-hidden" aria-label="All briefs currently in the landscape"></ul>
+
+  <div class="scroll-prompt">↓ scroll down</div>
 </section>
 
 <!-- ─── 02: Invitation ──────────────────────────────────────────── -->
 <section class="state-invitation" id="invitation">
   <div class="invitation-content">
-    <h1>An invitation, to gather.</h1>
+    <h2>An invitation, to gather.</h2>
 
     <p>We are entering a time when computing systems are becoming deeply capable. This shift raises a question that is less technical than it is deeply human.</p>
 
@@ -808,22 +994,21 @@
 
     <p>Intelligence is not exclusively human. A mangrove system reading tidal shifts. Mycelium networks distributing nutrients. Migratory birds navigating by magnetic fields. These are not metaphors. They are intelligences.</p>
 
-    <p>This terrain is shaped by the thinking of everyone who enters it. Where more participants' thinking converges, the terrain rises. Where the space is sparse, it feels like open ground — not empty, open.</p>
+    <p>This terrain is shaped by the thinking of everyone who enters it. Where more participants' thinking converges, the terrain rises. Where the space is sparse, it feels like open ground: not empty, open.</p>
 
     <button class="cta-enter" id="cta-enter">enter the terrain →</button>
   </div>
-  <div class="scroll-prompt">↓ click "add your brief" · overlay opens over the terrain</div>
 </section>
 
 <!-- ─── 03: Form Overlay ────────────────────────────────────────── -->
-<div class="form-overlay" id="form-overlay">
+<div class="form-overlay" id="form-overlay" role="dialog" aria-modal="true" aria-labelledby="form-header-title" aria-hidden="true">
   <div class="form-panel">
     <div class="form-header">
-      <span class="form-header-title">Gathering Intelligences — Your Brief</span>
-      <button class="form-close" id="form-close">close ×</button>
+      <span class="form-header-title" id="form-header-title">Gathering Intelligences · Your Brief</span>
+      <button class="form-close" id="form-close" aria-label="Close form">close ×</button>
     </div>
 
-    <div class="form-subtitle">What are you bringing into the room?</div>
+    <div class="form-subtitle" id="form-subtitle">What are you bringing into the room?</div>
 
     <div class="progress-dots" id="progress-dots">
       <span class="dot" id="dot-0"></span>
@@ -832,7 +1017,7 @@
       <span class="dot" id="dot-3"></span>
     </div>
 
-    <form id="brief-form" autocomplete="off">
+    <form id="brief-form" autocomplete="off" novalidate>
       <div class="form-group">
         <label for="f-who">Who are you</label>
         <span class="form-sublabel">name, practice, where you work</span>
@@ -846,9 +1031,10 @@
       </div>
 
       <div class="form-group key-field">
-        <label for="f-question">The question you're carrying</label>
-        <span class="form-sublabel">unresolved — one question you want more minds on</span>
-        <textarea id="f-question" rows="3"></textarea>
+        <label for="f-question">The question you're carrying *</label>
+        <span class="form-sublabel">unresolved, one question you want more minds on</span>
+        <textarea id="f-question" rows="3" required aria-required="true" aria-invalid="false" aria-describedby="f-question-error"></textarea>
+        <div id="f-question-error" class="field-error" role="alert">Please share the question you're carrying.</div>
       </div>
 
       <div class="form-group">
@@ -860,15 +1046,17 @@
       <div class="form-group">
         <div class="tag-section-label">Tags</div>
         <div class="tag-chips" id="form-tags"></div>
-        <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
+        <div class="add-tag-row">
           <button type="button" class="add-tag-btn" id="add-tag-btn">+ add your own</button>
-          <input type="text" class="add-tag-input" id="add-tag-input" placeholder="new tag…" />
+          <input type="text" class="add-tag-input" id="add-tag-input" placeholder="new tag" aria-label="New tag name" />
         </div>
       </div>
 
-      <div class="form-footer-text">
-        Your brief enters the landscape as written. It cannot be edited after submission.
+      <div class="form-footer-text" id="form-footer-text">
+        Your brief enters the landscape as written, so take a breath before you send it.
       </div>
+
+      <div class="form-error" id="form-error" role="alert" aria-live="polite"></div>
 
       <button type="submit" class="form-submit" id="form-submit">enter the landscape →</button>
     </form>
@@ -876,14 +1064,14 @@
 </div>
 
 <!-- ─── 04: Confirmation ────────────────────────────────────────── -->
-<section class="state-confirmation" id="state-confirmation">
+<section class="state-confirmation" id="state-confirmation" aria-labelledby="confirmation-heading">
   <div class="confirmation-grid">
     <div class="confirmation-left">
-      <div class="confirmation-arrow">→</div>
-      <h1>Your brief has entered the terrain.</h1>
-      <p>When others submit, the landscape will shift. Where your thinking converges with theirs, ridges will form. Where your question sits alone, the ground will be open — an invitation, not an absence.</p>
+      <div class="confirmation-arrow" aria-hidden="true">→</div>
+      <h2 id="confirmation-heading" tabindex="-1">Your brief has entered the terrain.</h2>
+      <p>When others submit, the landscape will shift. Where your thinking converges with theirs, ridges will form. Where your question sits alone, the ground will be open: an invitation, not an absence.</p>
       <p>We'll send you a link to revisit the terrain before the workshop.</p>
-      <a class="cta-resonance" href="/terrain.html">find resonance — who is thinking near you?</a>
+      <a class="cta-resonance" href="/terrain.html">find resonance with those thinking near you</a>
     </div>
     <div class="confirmation-right">
       <h3>Your Brief</h3>
@@ -893,13 +1081,13 @@
         <div class="preview-q" id="sc-q"></div>
         <div class="preview-tags" id="sc-tags"></div>
       </div>
-      <p class="brief-footnote">Your brief is now in the landscape. Scroll to find where you've landed — who's thinking nearby, what ridges your question is helping form.</p>
+      <p class="brief-footnote">Your brief is now in the landscape. Scroll to find where you've landed: who's thinking nearby, what ridges your question is helping form.</p>
     </div>
   </div>
 
   <footer class="site-footer">
     <p class="footer-material">This space runs on energy, water, and extracted minerals. Every page load has a material footprint. The terrain's restraint is a design ethic, not a limitation.</p>
-    <p class="footer-credits">Gathering Intelligences — Sydney &amp; Melbourne, 2026<em>Dr Sarah Barns &amp; Irina Panovich</em></p>
+    <p class="footer-credits">Gathering Intelligences · Sydney &amp; Melbourne, 2026<em>Dr Sarah Barns &amp; Irina Panovich</em></p>
   </footer>
 </section>
 
@@ -1165,7 +1353,71 @@ function rotatePreview() {
   }, 300);
 }
 
-setInterval(rotatePreview, 8000);
+// ── Pause/resume + visibility + reduced-motion + hover/focus gating (WCAG 2.2.2)
+let rotateTimer = null;
+let userPaused = false;
+const reducedMotionQ = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+function shouldRotate() {
+  if (userPaused) return false;
+  if (reducedMotionQ.matches) return false;
+  if (document.visibilityState === 'hidden') return false;
+  const previewEl = document.getElementById('brief-preview');
+  if (previewEl && previewEl.matches(':hover, :focus-within')) return false;
+  return true;
+}
+
+function startRotation() {
+  stopRotation();
+  if (!shouldRotate()) return;
+  rotateTimer = setInterval(() => {
+    if (shouldRotate()) rotatePreview();
+  }, 8000);
+}
+
+function stopRotation() {
+  if (rotateTimer) { clearInterval(rotateTimer); rotateTimer = null; }
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') stopRotation();
+  else startRotation();
+});
+
+reducedMotionQ.addEventListener('change', startRotation);
+
+const previewBlock = document.getElementById('brief-preview');
+if (previewBlock) {
+  previewBlock.addEventListener('mouseenter', stopRotation);
+  previewBlock.addEventListener('mouseleave', startRotation);
+  previewBlock.addEventListener('focusin', stopRotation);
+  previewBlock.addEventListener('focusout', startRotation);
+}
+
+const pauseBtn = document.getElementById('preview-pause');
+if (pauseBtn) {
+  pauseBtn.addEventListener('click', () => {
+    userPaused = !userPaused;
+    pauseBtn.setAttribute('aria-pressed', String(userPaused));
+    pauseBtn.textContent = userPaused ? 'resume rotation' : 'pause rotation';
+    if (userPaused) stopRotation(); else startRotation();
+  });
+}
+
+startRotation();
+
+// ── Screen-reader brief list (parallel keyboard-accessible path)
+function renderBriefList() {
+  const ul = document.getElementById('brief-list');
+  if (!ul) return;
+  if (!BRIEFS.length) { ul.innerHTML = '<li>No briefs yet.</li>'; return; }
+  ul.innerHTML = BRIEFS.map(b => {
+    const name = b.participant_name || 'Anonymous';
+    const tags = (b.tags || []).join(', ');
+    const tagPart = tags ? `. Tags: ${tags}.` : '.';
+    return `<li>${name}: "${b.question_im_carrying}"${tagPart}</li>`;
+  }).join('');
+}
 
 // ─── Scroll transition ─────────────────────────────────────────────────────
 const terrainFrame = document.getElementById('terrain-frame');
@@ -1201,12 +1453,44 @@ invObs.observe(invitationSection);
 const formOverlay = document.getElementById('form-overlay');
 const navCta = document.getElementById('nav-cta');
 
-function openForm() {
-  if (hasSubmitted) return;
-  formOverlay.classList.add('open');
+let lastFocusedBeforeForm = null;
+
+function getModalFocusables() {
+  return formOverlay.querySelectorAll(
+    'input:not([disabled]), textarea:not([disabled]), select:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+  );
 }
 
-function closeForm() { formOverlay.classList.remove('open'); }
+function openForm() {
+  if (hasSubmitted) return;
+  lastFocusedBeforeForm = document.activeElement;
+  formOverlay.classList.add('open');
+  formOverlay.setAttribute('aria-hidden', 'false');
+  showFormError(null);
+  const submitBtn = document.getElementById('form-submit');
+  if (submitBtn) submitBtn.textContent = 'enter the landscape →';
+  // Focus first input after panel paints
+  requestAnimationFrame(() => {
+    const first = document.getElementById('f-who');
+    if (first) first.focus();
+  });
+}
+
+function closeForm() {
+  formOverlay.classList.remove('open');
+  formOverlay.setAttribute('aria-hidden', 'true');
+  if (lastFocusedBeforeForm && typeof lastFocusedBeforeForm.focus === 'function') {
+    lastFocusedBeforeForm.focus();
+  }
+}
+
+function showFormError(msg) {
+  const el = document.getElementById('form-error');
+  if (!el) return;
+  if (!msg) { el.textContent = ''; el.classList.remove('visible'); return; }
+  el.textContent = msg;
+  el.classList.add('visible');
+}
 
 navCta.addEventListener('click', () => {
   if (hasSubmitted) {
@@ -1216,9 +1500,39 @@ navCta.addEventListener('click', () => {
   }
 });
 
-document.getElementById('cta-enter').addEventListener('click', () => openForm());
+document.getElementById('cta-enter').addEventListener('click', () => {
+  // Returning visitors: skip the form, go straight to the interactive landscape
+  if (hasSubmitted) { window.location.href = '/terrain.html'; return; }
+  openForm();
+});
 document.getElementById('form-close').addEventListener('click', closeForm);
 formOverlay.addEventListener('click', e => { if (e.target === formOverlay) closeForm(); });
+
+// ESC + focus trap on the form overlay
+document.addEventListener('keydown', e => {
+  if (!formOverlay.classList.contains('open')) return;
+  if (e.key === 'Escape') { e.preventDefault(); closeForm(); return; }
+  if (e.key === 'Tab') {
+    const f = getModalFocusables();
+    if (f.length === 0) return;
+    const first = f[0], last = f[f.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
+});
+
+// Clear question-field validation as the user types
+const qFieldEl = document.getElementById('f-question');
+if (qFieldEl) {
+  qFieldEl.addEventListener('input', () => {
+    if (qFieldEl.getAttribute('aria-invalid') === 'true') {
+      qFieldEl.setAttribute('aria-invalid', 'false');
+    }
+  });
+}
+
+// Note: this canvas is a static preview. Interactive panning lives at /terrain.html.
+// The screen-reader brief list (#brief-list) gives keyboard/SR users the same content.
 
 // Progress dots
 const fields = ['f-who', 'f-working', 'f-question', 'f-push'];
@@ -1251,6 +1565,12 @@ function renderFormTags() {
 const addTagBtn = document.getElementById('add-tag-btn');
 const addTagInput = document.getElementById('add-tag-input');
 
+function resetAddTag() {
+  addTagInput.value = '';
+  addTagInput.style.display = 'none';
+  addTagBtn.style.display = '';
+}
+
 addTagBtn.addEventListener('click', () => {
   addTagInput.style.display = 'block';
   addTagInput.focus();
@@ -1258,48 +1578,64 @@ addTagBtn.addEventListener('click', () => {
 });
 
 addTagInput.addEventListener('keydown', async (e) => {
+  if (e.key === 'Escape') { e.preventDefault(); resetAddTag(); return; }
   if (e.key !== 'Enter') return;
   e.preventDefault();
-  const label = addTagInput.value.trim().toLowerCase();
-  if (!label) return;
 
+  const label = addTagInput.value.trim().toLowerCase();
+  if (!label) { resetAddTag(); return; }
+
+  // Dedupe: if a tag with this label already exists, just select it
+  const existing = ALL_TAGS.find(t => t.label.toLowerCase() === label);
+  if (existing) {
+    selectedFormTags.add(existing.id);
+    resetAddTag();
+    renderFormTags();
+    return;
+  }
+
+  let newTag = null;
   try {
     const res = await fetch('/api/tags', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ label }),
     });
-    if (res.ok) {
-      const tag = await res.json();
-      ALL_TAGS.push(tag);
-      selectedFormTags.add(tag.id);
-    }
-  } catch {
-    // Offline — add locally
-    const fakeTag = { id: 'local-' + Date.now(), label, is_seed: false };
-    ALL_TAGS.push(fakeTag);
-    selectedFormTags.add(fakeTag.id);
-  }
+    if (res.ok) newTag = await res.json();
+  } catch { /* offline */ }
 
-  addTagInput.value = '';
-  addTagInput.style.display = 'none';
-  addTagBtn.style.display = '';
+  // Always show the user's tag locally; server may catch up later
+  if (!newTag) newTag = { id: 'local-' + Date.now(), label, is_seed: false };
+  ALL_TAGS.push(newTag);
+  selectedFormTags.add(newTag.id);
+
+  resetAddTag();
   renderFormTags();
+});
+
+// Empty-blur auto-cancels so we don't strand a half-typed input
+addTagInput.addEventListener('blur', () => {
+  if (addTagInput.value.trim() === '') resetAddTag();
 });
 
 // Submit
 document.getElementById('brief-form').addEventListener('submit', async (e) => {
   e.preventDefault();
 
-  const question = document.getElementById('f-question').value.trim();
+  const qField = document.getElementById('f-question');
+  const question = qField.value.trim();
   if (!question) {
-    document.getElementById('f-question').style.borderColor = '#c8286e';
+    qField.setAttribute('aria-invalid', 'true');
+    qField.focus();
     return;
   }
+  qField.setAttribute('aria-invalid', 'false');
+  showFormError(null);
 
   const submitBtn = document.getElementById('form-submit');
   submitBtn.disabled = true;
   submitBtn.classList.add('submitting');
+  submitBtn.textContent = 'sending…';
 
   const who = document.getElementById('f-who').value.trim();
   const body = {
@@ -1311,6 +1647,7 @@ document.getElementById('brief-form').addEventListener('submit', async (e) => {
     tag_ids: [...selectedFormTags].filter(id => !id.startsWith('seed-') && !id.startsWith('local-')),
   };
 
+  let serverError = null;
   try {
     const res = await fetch('/api/briefs', {
       method: 'POST',
@@ -1318,7 +1655,11 @@ document.getElementById('brief-form').addEventListener('submit', async (e) => {
       body: JSON.stringify(body),
     });
 
-    if (!res.ok) throw new Error(`${res.status}`);
+    if (!res.ok) {
+      const err = new Error('http_error');
+      err.status = res.status;
+      throw err;
+    }
     const result = await res.json();
 
     submittedBrief = {
@@ -1327,13 +1668,34 @@ document.getElementById('brief-form').addEventListener('submit', async (e) => {
       question_im_carrying: question,
       tags: ALL_TAGS.filter(t => selectedFormTags.has(t.id)).map(t => t.label),
     };
-  } catch {
-    // Offline fallback
+  } catch (err) {
+    serverError = err;
+    // Offline fallback so the user still sees their brief
     submittedBrief = {
       participant_name: body.participant_name,
       question_im_carrying: question,
       tags: ALL_TAGS.filter(t => selectedFormTags.has(t.id)).map(t => t.label),
     };
+  }
+
+  // If submit failed, surface the error and let the user retry.
+  // Only mark as submitted + advance to confirmation if the server accepted.
+  if (serverError) {
+    submitBtn.disabled = false;
+    submitBtn.classList.remove('submitting');
+    submitBtn.textContent = 'try again';
+
+    let msg;
+    if (serverError && serverError.status) {
+      if (serverError.status >= 500)      msg = "The server hit a snag on its end. Try again in a moment.";
+      else if (serverError.status === 429) msg = "Easy now. Wait a moment, then try again.";
+      else if (serverError.status === 413) msg = "Your brief is a little long. Try trimming it a bit.";
+      else                                 msg = "The server didn't accept that. Refresh the page and try again.";
+    } else {
+      msg = "Couldn't reach the server. Check your connection, then try again.";
+    }
+    showFormError(msg);
+    return;
   }
 
   localStorage.setItem('ci_submitted', 'true');
@@ -1364,6 +1726,15 @@ function showConfirmation() {
       `<span class="preview-tag ${tagAccentClass(t)}">${t}</span>`
     ).join('');
   }
+
+  // Move focus to the new state's heading so screen readers announce it
+  const heading = document.getElementById('confirmation-heading');
+  if (heading) {
+    requestAnimationFrame(() => {
+      heading.focus();
+      heading.scrollIntoView({ block: 'start', behavior: 'auto' });
+    });
+  }
 }
 
 // ─── Data loading ───────────────────────────────────────────────────────────
@@ -1377,7 +1748,9 @@ async function loadBriefs() {
   }
   drawTerrain(BRIEFS);
   updateStats();
+  renderBriefList();
   if (BRIEFS.length > 0) showPreview(BRIEFS[0]);
+  startRotation();
 }
 
 async function loadTags() {
@@ -1402,7 +1775,15 @@ loadTags();
 loadBriefs();
 
 // Redraw canvas on resize
-window.addEventListener('resize', () => { if (BRIEFS.length) drawTerrain(BRIEFS); });
+// Debounced resize: redraw the heightmap once the user stops dragging the window.
+// drawTerrain is O(GRID² · briefs); firing on every resize event would melt low-end laptops.
+let resizeTimer = null;
+window.addEventListener('resize', () => {
+  if (resizeTimer) clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    if (BRIEFS.length) drawTerrain(BRIEFS);
+  }, 150);
+});
 </script>
 </body>
 </html>
