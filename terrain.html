@@ -5,14 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Civic.Interplay · Terrain</title>
 
-<!-- Fonts: preconnect early, then load stylesheet without blocking @import.
-     `display=swap` keeps text readable while fonts arrive. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,500;1,300&family=Spectral:ital,wght@0,300;0,400;1,300;1,400&display=swap">
 
 <style>
-  /* Channel tokens — author colours as rgb(var(--*-rgb) / α). One palette source. */
   :root {
     --bg-dark: #2a1f24;
     --bg-cream: #f0eaec;
@@ -23,10 +20,10 @@
     --magenta-rgb:    200 40 110;
     --sage-rgb:        74 122 86;
     --mauve-rgb:      154 102 120;
-    --mauve-deep-rgb: 122 78 94;     /* darker mauve for text on cream */
-    --text-rgb:        60 35 45;     /* primary on cream */
-    --text-dark-rgb:   50 28 38;     /* deeper, for emphasised prose */
-    --text-light-rgb: 228 218 218;   /* on dark plum */
+    --mauve-deep-rgb: 122 78 94;
+    --text-rgb:        60 35 45;
+    --text-dark-rgb:   50 28 38;
+    --text-light-rgb: 228 218 218;
     --border-rgb:     100 70 80;
     --bg-dark-rgb:     42 31 36;
     --bg-cream-rgb:   240 234 236;
@@ -52,7 +49,6 @@
 
   canvas { display: block; }
 
-  /* UI overlay */
   .ui-layer {
     position: fixed;
     inset: 0;
@@ -60,7 +56,6 @@
     z-index: 10;
   }
 
-  /* Soft vignette so UI text remains legible over bright terrain */
   .ui-layer::before,
   .ui-layer::after {
     content: "";
@@ -93,10 +88,7 @@
     color: rgb(var(--text-light-rgb) / 0.78);
   }
 
-  .wordmark em {
-    font-style: normal;
-    color: #c8286e;
-  }
+  .wordmark em { font-style: normal; color: #c8286e; }
 
   .hint {
     position: absolute;
@@ -137,7 +129,6 @@
     letter-spacing: 0.05em;
   }
 
-  /* Brief card tooltip */
   #tooltip {
     position: fixed;
     z-index: 20;
@@ -202,7 +193,6 @@
   .tooltip-tag.accent-sage { color: #4a7a56; border-color: rgb(var(--sage-rgb) / 0.28); background: rgb(var(--sage-rgb) / 0.04); }
   .tooltip-tag.accent-mauve { color: #7a4e5e; border-color: rgb(var(--mauve-deep-rgb) / 0.28); background: rgb(var(--mauve-deep-rgb) / 0.04); }
 
-  /* Add brief button */
   .add-btn {
     position: absolute;
     bottom: 2rem;
@@ -223,7 +213,6 @@
   .add-btn:hover { background: rgb(var(--magenta-rgb) / 0.85); color: #fff5f9; border-color: #ffb8d4; }
   .add-btn:disabled { opacity: 0.3; cursor: default; }
 
-  /* Grain overlay */
   .grain {
     position: fixed;
     inset: 0;
@@ -233,7 +222,6 @@
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.08'/%3E%3C/svg%3E");
   }
 
-  /* ─── Form overlay ──────────────────────────────────────────────────── */
   .form-overlay {
     position: fixed;
     inset: 0;
@@ -271,9 +259,7 @@
     margin-bottom: 1.5rem;
   }
 
-  .form-group {
-    margin-bottom: 1.2rem;
-  }
+  .form-group { margin-bottom: 1.2rem; }
 
   .form-group label {
     display: block;
@@ -321,7 +307,6 @@
     color: rgb(var(--text-rgb) / 0.55);
   }
 
-  /* Tag chips in form */
   .tag-chips {
     display: flex;
     flex-wrap: wrap;
@@ -348,7 +333,6 @@
     background: rgb(var(--magenta-rgb) / 0.06);
   }
 
-  /* + add your own */
   .add-tag-row {
     display: flex;
     align-items: center;
@@ -416,9 +400,7 @@
     background: rgb(var(--magenta-rgb) / 0.05);
   }
 
-  .form-error.visible {
-    display: block;
-  }
+  .form-error.visible { display: block; }
 
   .form-actions {
     display: flex;
@@ -440,15 +422,8 @@
   }
 
   .form-submit:hover { background: rgb(var(--magenta-rgb) / 0.08); }
-
-  .form-submit:disabled {
-    opacity: 0.3;
-    cursor: default;
-  }
-
-  .form-submit.submitting {
-    animation: pulse-border 1.2s ease-in-out infinite;
-  }
+  .form-submit:disabled { opacity: 0.3; cursor: default; }
+  .form-submit.submitting { animation: pulse-border 1.2s ease-in-out infinite; }
 
   @keyframes pulse-border {
     0%, 100% { border-color: rgb(var(--magenta-rgb) / 0.4); }
@@ -469,7 +444,6 @@
 
   .form-cancel:hover { border-color: rgb(var(--border-rgb) / 0.5); color: rgb(var(--text-rgb) / 0.85); }
 
-  /* ─── Tag filter panel ──────────────────────────────────────────────── */
   .filter-panel {
     position: absolute;
     bottom: 2rem;
@@ -519,7 +493,6 @@
     background: rgb(var(--magenta-rgb) / 0.08);
   }
 
-  /* Empty state */
   .empty-state {
     position: absolute;
     top: 50%;
@@ -538,7 +511,6 @@
     line-height: 1.7;
   }
 
-  /* ─── Accessibility scaffolding ──────────────────────────────────── */
   .visually-hidden {
     position: absolute;
     width: 1px;
@@ -551,7 +523,6 @@
     border: 0;
   }
 
-  /* Keyboard-only focus indicators (mouse focus stays visually clean) */
   #canvas-container:focus-visible,
   .add-btn:focus-visible,
   .form-submit:focus-visible,
@@ -570,7 +541,6 @@
     border-color: rgb(var(--magenta-rgb) / 0.6);
   }
 
-  /* Inline field validation */
   .field-error {
     display: none;
     margin-top: 0.4rem;
@@ -581,15 +551,9 @@
     letter-spacing: 0.02em;
   }
 
-  .form-group [aria-invalid="true"] {
-    border-color: #c8286e;
-  }
+  .form-group [aria-invalid="true"] { border-color: #c8286e; }
+  .form-group [aria-invalid="true"] ~ .field-error { display: block; }
 
-  .form-group [aria-invalid="true"] ~ .field-error {
-    display: block;
-  }
-
-  /* Wordmark stays visually identical even though it's now an h1 */
   h1.wordmark, h2.form-title { font-weight: inherit; }
 
   #canvas-container { outline: none; }
@@ -601,7 +565,6 @@
     }
   }
 
-  /* ─── Touch targets (WCAG 2.5.5) ─────────────────────────────────── */
   .add-btn,
   .form-submit,
   .form-cancel {
@@ -611,7 +574,6 @@
     justify-content: center;
   }
 
-  /* Chips keep their tiny visual size but grow hit area on coarse pointers */
   .filter-chip,
   .tag-chip {
     position: relative;
@@ -623,19 +585,14 @@
       content: "";
       position: absolute;
       inset: -14px -6px;
-      /* invisible expanded tap area */
     }
     .filter-chips { gap: 14px 6px; }
     .tag-chips    { gap: 14px 6px; }
   }
 
-  /* Tooltip pinned (touch-tap) state — small close affordance */
-  #tooltip.pinned {
-    pointer-events: auto;
-  }
-  #tooltip.pinned .tooltip-close {
-    display: inline-block;
-  }
+  #tooltip.pinned { pointer-events: auto; }
+  #tooltip.pinned .tooltip-close { display: inline-block; }
+
   .tooltip-close {
     display: none;
     position: absolute;
@@ -655,13 +612,9 @@
   .tooltip-close:hover { color: rgb(var(--text-rgb) / 0.85); }
   .tooltip-close:focus-visible { outline: 2px solid #c8286e; outline-offset: 1px; }
 
-  /* ─── Small-screen layout fixes ──────────────────────────────────── */
   @media (max-width: 600px) {
     .hint { display: none; }
-    /* Lift filter panel above the add-brief button */
-    .filter-panel {
-      bottom: 5.5rem;
-    }
+    .filter-panel { bottom: 5.5rem; }
     .wordmark { top: 1rem; left: 1rem; }
     .brief-count { top: 1rem; right: 1rem; }
     .brief-count .n { font-size: 22px; }
@@ -684,7 +637,6 @@
   </div>
   <div class="hint">drag or arrow keys to traverse · hover or tab to read</div>
 
-  <!-- Tag filter -->
   <div class="filter-panel" id="filter-panel" style="display:none;">
     <div class="filter-label">filter by lens</div>
     <div class="filter-chips" id="filter-chips"></div>
@@ -703,10 +655,8 @@
   </div>
 </div>
 
-<!-- Screen-reader / keyboard-accessible parallel list of briefs -->
 <ul id="brief-list" class="visually-hidden" aria-label="All briefs in the landscape"></ul>
 
-<!-- ─── Submission form ─────────────────────────────────────────────── -->
 <div class="form-overlay" id="form-overlay" role="dialog" aria-modal="true" aria-labelledby="form-title" aria-hidden="true">
   <div class="form-panel">
     <h2 class="form-title" id="form-title">Add your brief to the landscape</h2>
@@ -768,14 +718,16 @@
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
 <script>
+// ─── Workshop slug from URL ─────────────────────────────────────────────────
+// terrain.civicinterplay.io/terrain.html?workshop=origin → 'origin'. Default is 'origin'.
+const WORKSHOP_SLUG = new URLSearchParams(window.location.search).get('workshop') || 'origin';
+
 // ─── State ──────────────────────────────────────────────────────────────────
 let BRIEFS = [];
 let ALL_TAGS = [];
 let selectedFormTags = new Set();
 let activeFilterTags = new Set();
-let hasSubmitted = localStorage.getItem('ci_submitted') === 'true';
 
-// Synthetic fallback data (used when API unavailable)
 const FALLBACK_BRIEFS = [
   { id:1, x:-0.35, y: 0.28, participant_name:'Lucie Bui', question_im_carrying:'How do we design systems that listen the way a long-term resident does — slowly, across seasons?', tags:['country','water','more-than-human'] },
   { id:2, x:-0.28, y: 0.22, participant_name:'Yuin / Marcus Webb', question_im_carrying:'What gets lost when we turn community knowledge into extractable variables?', tags:['data sovereignty','community practice'] },
@@ -799,7 +751,6 @@ const FALLBACK_BRIEFS = [
   { id:20,x:-0.65, y:-0.45, participant_name:'C. Adeyemi', question_im_carrying:'How do you map what hasn\'t happened yet?', tags:['storytelling'] },
 ];
 
-// ─── Simplex noise ──────────────────────────────────────────────────────────
 function Alea(seed) {
   let s0,s1,s2,c;
   function mash(d){d=d.toString();for(let n=0xefc8249d,i=0;i<d.length;i++){n+=d.charCodeAt(i);let h=0.02519603282416938*n;n=h>>>0;h-=n;h*=n;n=h>>>0;h-=n;n+=h*0x100000000}return(n>>>0)*2.3283064365386963e-10}
@@ -834,7 +785,6 @@ const SimplexNoise = (function(){
   }};
 })();
 
-// ─── KDE heightmap ──────────────────────────────────────────────────────────
 function buildHeightmap(size, briefs, bandwidth=0.18, noiseScale=0.35, noiseAmp=0.15) {
   const map = new Float32Array(size * size);
   const half = size / 2;
@@ -877,7 +827,6 @@ function buildHeightmap(size, briefs, bandwidth=0.18, noiseScale=0.35, noiseAmp=
   return map;
 }
 
-// ─── Setup Three.js ─────────────────────────────────────────────────────────
 const container = document.getElementById('canvas-container');
 const W = window.innerWidth, H = window.innerHeight;
 
@@ -894,18 +843,15 @@ const camera = new THREE.PerspectiveCamera(55, W/H, 0.1, 100);
 camera.position.set(0, 3.5, 7);
 camera.lookAt(0, 0, 0);
 
-// ─── Terrain constants ──────────────────────────────────────────────────────
 const SEG = 180;
 const TERRAIN_SIZE = 16;
 const HEIGHT_SCALE = 2.2;
 
-// Scene objects we'll rebuild
 let terrainMesh = null;
 let contourGroup = null;
 let pointsMesh = null;
 let briefData = [];
 
-// ─── Cluster logic ──────────────────────────────────────────────────────────
 function clusterInfo(tags) {
   if (tags.some(t => ['data sovereignty','country','governance'].includes(t)))
     return { rgb: [0.78, 0.16, 0.43], hex: '#c8286e', name: 'magenta', label: 'data & sovereignty' };
@@ -921,9 +867,7 @@ function tagAccentClass(tag, cluster) {
   return cluster.name === 'magenta' ? 'accent-magenta' : cluster.name === 'sage' ? 'accent-sage' : 'accent-mauve';
 }
 
-// ─── Build / rebuild terrain from BRIEFS ────────────────────────────────────
 function rebuildTerrain() {
-  // Filter briefs by active tag filter
   let activeBriefs = BRIEFS;
   if (activeFilterTags.size > 0) {
     activeBriefs = BRIEFS.filter(b =>
@@ -931,15 +875,12 @@ function rebuildTerrain() {
     );
   }
 
-  // Build heightmap from active briefs (for terrain shape)
   const heightmap = buildHeightmap(SEG + 1, activeBriefs.length > 0 ? activeBriefs : BRIEFS);
 
-  // Remove old terrain
   if (terrainMesh) { scene.remove(terrainMesh); terrainMesh.geometry.dispose(); }
   if (contourGroup) { scene.remove(contourGroup); }
   if (pointsMesh) { scene.remove(pointsMesh); pointsMesh.geometry.dispose(); }
 
-  // Build geometry
   const geo = new THREE.PlaneGeometry(TERRAIN_SIZE, TERRAIN_SIZE, SEG, SEG);
   geo.rotateX(-Math.PI / 2);
 
@@ -950,7 +891,6 @@ function rebuildTerrain() {
   }
   geo.computeVertexNormals();
 
-  // Colour by height
   const colors = new Float32Array(pos.count * 3);
   for (let i = 0; i < pos.count; i++) {
     const h = pos.getY(i) / HEIGHT_SCALE + 0.3;
@@ -970,7 +910,6 @@ function rebuildTerrain() {
   terrainMesh = new THREE.Mesh(geo, mat);
   scene.add(terrainMesh);
 
-  // ── Contour lines ──
   contourGroup = new THREE.Group();
   const lineMat = new THREE.LineBasicMaterial({
     color: 0x6a4855, transparent: true, opacity: 0.28, fog: true,
@@ -1008,7 +947,6 @@ function rebuildTerrain() {
   }
   scene.add(contourGroup);
 
-  // ── Brief dots ──
   function sampleHeight(bx, by) {
     const col = Math.round(((bx + 1) / 2) * SEG);
     const row = Math.round(((by + 1) / 2) * SEG);
@@ -1027,7 +965,6 @@ function rebuildTerrain() {
     const wy = sampleHeight(b.x, b.y) + 0.08;
     briefPositions.push(wx, wy, wz);
     const cluster = clusterInfo(b.tags);
-    // Dim dots that don't match active filter
     const isFiltered = activeFilterTags.size > 0 && !b.tags.some(t => activeFilterTags.has(t));
     const alpha = isFiltered ? 0.12 : 1.0;
     briefColors.push(cluster.rgb[0]*alpha + 0.17*(1-alpha), cluster.rgb[1]*alpha + 0.12*(1-alpha), cluster.rgb[2]*alpha + 0.14*(1-alpha));
@@ -1048,14 +985,10 @@ function rebuildTerrain() {
   pointsMesh = new THREE.Points(ptGeo, ptMat);
   scene.add(pointsMesh);
 
-  // Update count
   document.getElementById('count-n').textContent = BRIEFS.length || '—';
-
-  // Update screen-reader / keyboard parallel list
   renderBriefList();
 }
 
-// ─── Screen-reader brief list ──────────────────────────────────────────────
 function renderBriefList() {
   const ul = document.getElementById('brief-list');
   if (!ul) return;
@@ -1064,12 +997,10 @@ function renderBriefList() {
     const name = b.participant_name || 'Anonymous';
     const tags = (b.tags || []).join(', ');
     const tagPart = tags ? `. Tags: ${tags}.` : '.';
-    // Quotation marks rendered as text so screen readers pick them up cleanly
     return `<li>${name}: "${b.question_im_carrying}"${tagPart}</li>`;
   }).join('');
 }
 
-// ─── Lighting (static, only added once) ─────────────────────────────────────
 scene.add(new THREE.AmbientLight(0xc8b0b8, 0.7));
 const dirLight = new THREE.DirectionalLight(0xffe8d6, 0.9);
 dirLight.position.set(3, 8, 4);
@@ -1078,13 +1009,12 @@ const fillLight = new THREE.DirectionalLight(0xb0c8d0, 0.3);
 fillLight.position.set(-4, 3, -3);
 scene.add(fillLight);
 
-// ─── Raycasting ─────────────────────────────────────────────────────────────
 const raycaster = new THREE.Raycaster();
 raycaster.params.Points.threshold = 0.25;
 const mouse = new THREE.Vector2();
 const tooltip = document.getElementById('tooltip');
 let hoveredBrief = null;
-let pinnedBrief = null;  // touch-tap pinning
+let pinnedBrief = null;
 
 function renderTooltip(b) {
   const c = b.cluster;
@@ -1121,7 +1051,7 @@ window.addEventListener('mousemove', onMouseMove);
 
 function checkHover() {
   if (!pointsMesh) return;
-  if (pinnedBrief) return;  // hover disabled while a brief is pinned
+  if (pinnedBrief) return;
   raycaster.setFromCamera(mouse, camera);
   const hits = raycaster.intersectObject(pointsMesh);
   if (hits.length > 0) {
@@ -1138,7 +1068,6 @@ function checkHover() {
   }
 }
 
-// ─── Touch tap → pin tooltip ───────────────────────────────────────────────
 function pickBriefAtClient(clientX, clientY) {
   if (!pointsMesh) return null;
   const m = new THREE.Vector2(
@@ -1157,10 +1086,9 @@ function pinBriefAtClient(clientX, clientY) {
   const b = pickBriefAtClient(clientX, clientY);
   if (!b) { hideTooltip(); return false; }
   pinnedBrief = b;
-  // Position tooltip near tap, clamped so it doesn't go offscreen
   const margin = 14;
-  const ttW = 260;  // approx max-width
-  const ttH = 140;  // approx height
+  const ttW = 260;
+  const ttH = 140;
   let left = clientX + 14;
   let top  = clientY - 10;
   if (left + ttW > window.innerWidth - margin)  left = Math.max(margin, clientX - ttW - 14);
@@ -1174,14 +1102,12 @@ function pinBriefAtClient(clientX, clientY) {
 
 document.getElementById('tt-close').addEventListener('click', hideTooltip);
 
-// Tap-outside dismisses pinned tooltip
 document.addEventListener('click', e => {
   if (!pinnedBrief) return;
   if (tooltip.contains(e.target)) return;
   hideTooltip();
 });
 
-// ─── Camera drag ────────────────────────────────────────────────────────────
 let isDragging = false;
 let dragStart = { x: 0, y: 0 };
 let camTarget = { x: 0, z: 7 };
@@ -1207,12 +1133,11 @@ renderer.domElement.addEventListener('mousemove', e => {
   dragStart = { x: e.clientX, y: e.clientY };
 });
 
-// Touch — drag to pan, tap to pin a brief
 let touchStartTime = 0;
 let touchStartPos = { x: 0, y: 0 };
 let touchMoved = 0;
-const TAP_MAX_MOVE = 10;     // px
-const TAP_MAX_DURATION = 280;// ms
+const TAP_MAX_MOVE = 10;
+const TAP_MAX_DURATION = 280;
 
 renderer.domElement.addEventListener('touchstart', e => {
   const t = e.touches[0];
@@ -1226,7 +1151,6 @@ renderer.domElement.addEventListener('touchstart', e => {
 renderer.domElement.addEventListener('touchend', e => {
   isDragging = false;
   const elapsed = Date.now() - touchStartTime;
-  // Tap = small movement, short duration → pick a brief
   if (touchMoved < TAP_MAX_MOVE && elapsed < TAP_MAX_DURATION) {
     pinBriefAtClient(touchStartPos.x, touchStartPos.y);
   }
@@ -1237,7 +1161,6 @@ renderer.domElement.addEventListener('touchmove', e => {
   const t = e.touches[0];
   const dx = (t.clientX - dragStart.x) / window.innerWidth;
   const dy = (t.clientY - dragStart.y) / window.innerHeight;
-  // accumulate raw px movement to distinguish tap vs drag
   touchMoved += Math.abs(t.clientX - dragStart.x) + Math.abs(t.clientY - dragStart.y);
   camTarget.x -= dx * 6;
   camTarget.z -= dy * 4;
@@ -1246,11 +1169,9 @@ renderer.domElement.addEventListener('touchmove', e => {
   dragStart = { x: t.clientX, y: t.clientY };
 }, { passive: true });
 
-// ─── Animate ────────────────────────────────────────────────────────────────
 const clock = new THREE.Clock();
 
 function animate() {
-  // Pause the WebGL render loop when the tab is hidden (saves battery + GPU)
   if (document.visibilityState === 'hidden') {
     document.addEventListener('visibilitychange', resumeAnimate, { once: true });
     return;
@@ -1267,7 +1188,6 @@ function animate() {
   camera.position.set(camCurrent.x, 3.5, camCurrent.z);
   camera.lookAt(camCurrent.x * 0.3, 0, 0);
 
-  // Hover size pulse
   if (pointsMesh) {
     const sizes = pointsMesh.geometry.attributes.size.array;
     for (let i = 0; i < briefData.length; i++) {
@@ -1281,14 +1201,12 @@ function animate() {
 }
 
 function resumeAnimate() {
-  // Reset the clock so we don't get a huge time-jump after returning
   clock.start();
   animate();
 }
 
 animate();
 
-// ─── Resize ─────────────────────────────────────────────────────────────────
 window.addEventListener('resize', () => {
   const w = window.innerWidth, h = window.innerHeight;
   camera.aspect = w / h;
@@ -1299,7 +1217,7 @@ window.addEventListener('resize', () => {
 // ─── Data loading ───────────────────────────────────────────────────────────
 async function loadBriefs() {
   try {
-    const res = await fetch('/api/briefs');
+    const res = await fetch('/api/briefs?workshop=' + encodeURIComponent(WORKSHOP_SLUG));
     if (!res.ok) throw new Error(`${res.status}`);
     BRIEFS = await res.json();
   } catch (err) {
@@ -1315,7 +1233,6 @@ async function loadTags() {
     if (!res.ok) throw new Error(`${res.status}`);
     ALL_TAGS = await res.json();
   } catch {
-    // Fallback seed tags
     ALL_TAGS = [
       'water','country','infrastructure','ecology','data sovereignty',
       'collective intelligence','urban systems','storytelling','governance',
@@ -1326,7 +1243,6 @@ async function loadTags() {
   renderFormTags();
 }
 
-// ─── Tag filter UI ──────────────────────────────────────────────────────────
 function renderFilterChips() {
   const el = document.getElementById('filter-chips');
   const panel = document.getElementById('filter-panel');
@@ -1353,7 +1269,6 @@ function renderFilterChips() {
   });
 }
 
-// ─── Form tag chips ─────────────────────────────────────────────────────────
 function renderFormTags() {
   const el = document.getElementById('form-tags');
   el.innerHTML = ALL_TAGS.map(t =>
@@ -1374,7 +1289,6 @@ function renderFormTags() {
   });
 }
 
-// ─── + add your own ─────────────────────────────────────────────────────────
 const addTagBtn = document.getElementById('add-tag-btn');
 const addTagInput = document.getElementById('add-tag-input');
 
@@ -1391,7 +1305,6 @@ if (addTagBtn && addTagInput) {
     addTagBtn.style.display = '';
   }
 
-  // Submit new tag on Enter; cancel on Escape
   addTagInput.addEventListener('keydown', async (e) => {
     if (e.key === 'Escape') { e.preventDefault(); resetAddTag(); return; }
     if (e.key !== 'Enter') return;
@@ -1399,7 +1312,6 @@ if (addTagBtn && addTagInput) {
     const label = addTagInput.value.trim().toLowerCase();
     if (!label) { resetAddTag(); return; }
 
-    // Skip if it already exists (case-insensitive match)
     const existing = ALL_TAGS.find(t => t.label.toLowerCase() === label);
     if (existing) {
       selectedFormTags.add(existing.id);
@@ -1418,7 +1330,6 @@ if (addTagBtn && addTagInput) {
       if (res.ok) newTag = await res.json();
     } catch { /* offline */ }
 
-    // Always add locally so the user sees their tag — server may catch up later
     if (!newTag) newTag = { id: 'local-' + Date.now(), label, is_seed: false };
     ALL_TAGS.push(newTag);
     selectedFormTags.add(newTag.id);
@@ -1427,26 +1338,17 @@ if (addTagBtn && addTagInput) {
     renderFormTags();
   });
 
-  // Lose-focus also cancels (don't strand a half-typed input)
   addTagInput.addEventListener('blur', () => {
     if (addTagInput.value.trim() === '') resetAddTag();
   });
 }
 
-// ─── Form logic ─────────────────────────────────────────────────────────────
 const formOverlay = document.getElementById('form-overlay');
 const addBtn = document.getElementById('add-btn');
 const formCancel = document.getElementById('form-cancel');
 const briefForm = document.getElementById('brief-form');
 const formSubmitBtn = document.getElementById('form-submit');
 
-// Disable button if already submitted
-if (hasSubmitted) {
-  addBtn.textContent = 'brief submitted';
-  addBtn.disabled = true;
-}
-
-// ─── Modal a11y: focus trap, ESC, focus restore ────────────────────────────
 let lastFocusedBeforeModal = null;
 
 function getModalFocusables() {
@@ -1456,14 +1358,11 @@ function getModalFocusables() {
 }
 
 function openModal() {
-  if (hasSubmitted) return;
   lastFocusedBeforeModal = document.activeElement;
   formOverlay.classList.add('open');
   formOverlay.setAttribute('aria-hidden', 'false');
-  // Reset any prior error and stale button label
   showFormError(null);
   formSubmitBtn.textContent = 'enter the landscape →';
-  // Focus first field after the panel paints
   requestAnimationFrame(() => {
     const first = document.getElementById('f-name');
     if (first) first.focus();
@@ -1478,15 +1377,44 @@ function closeModal() {
   }
 }
 
+function resetForm() {
+  ['f-name', 'f-practice', 'f-working', 'f-question'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  const pushSel = document.getElementById('f-push');
+  if (pushSel) pushSel.value = '';
+  selectedFormTags.clear();
+  const qField = document.getElementById('f-question');
+  if (qField) qField.setAttribute('aria-invalid', 'false');
+  showFormError(null);
+  if (formSubmitBtn) {
+    formSubmitBtn.disabled = false;
+    formSubmitBtn.classList.remove('submitting');
+    formSubmitBtn.textContent = 'enter the landscape →';
+  }
+  renderFormTags();
+}
+
+function showFormError(msg) {
+  const el = document.getElementById('form-error');
+  if (!el) return;
+  if (!msg) {
+    el.textContent = '';
+    el.classList.remove('visible');
+    return;
+  }
+  el.textContent = msg;
+  el.classList.add('visible');
+}
+
 addBtn.addEventListener('click', openModal);
 formCancel.addEventListener('click', closeModal);
 
-// Close on overlay background click
 formOverlay.addEventListener('click', e => {
   if (e.target === formOverlay) closeModal();
 });
 
-// ESC closes, Tab traps within the modal
 document.addEventListener('keydown', e => {
   if (!formOverlay.classList.contains('open')) return;
   if (e.key === 'Escape') { e.preventDefault(); closeModal(); return; }
@@ -1502,7 +1430,6 @@ document.addEventListener('keydown', e => {
   }
 });
 
-// Clear validation error as user types
 const qFieldEl = document.getElementById('f-question');
 qFieldEl.addEventListener('input', () => {
   if (qFieldEl.getAttribute('aria-invalid') === 'true') {
@@ -1510,10 +1437,8 @@ qFieldEl.addEventListener('input', () => {
   }
 });
 
-// ─── Keyboard panning on the canvas ────────────────────────────────────────
 document.addEventListener('keydown', e => {
   if (formOverlay.classList.contains('open')) return;
-  // Don't hijack typing in any future inputs outside the modal
   const t = e.target;
   if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
   const step = 0.6;
@@ -1536,22 +1461,21 @@ briefForm.addEventListener('submit', async (e) => {
     return;
   }
   qField.setAttribute('aria-invalid', 'false');
+  showFormError(null);
 
   formSubmitBtn.disabled = true;
   formSubmitBtn.classList.add('submitting');
   formSubmitBtn.textContent = 'sending…';
 
   const body = {
+    workshop_slug: WORKSHOP_SLUG,
     participant_name: document.getElementById('f-name').value.trim() || null,
     practice_area: document.getElementById('f-practice').value.trim() || null,
     what_im_working_on: document.getElementById('f-working').value.trim() || null,
     question_im_carrying: question,
     what_push_i_want: document.getElementById('f-push').value || null,
-    tag_ids: [...selectedFormTags].filter(id => !id.startsWith('seed-') && !id.startsWith('local-')), // only real UUIDs
+    tag_ids: [...selectedFormTags].filter(id => !id.startsWith('seed-') && !id.startsWith('local-')),
   };
-
-  // Clear any previous error before submitting
-  showFormError(null);
 
   try {
     const res = await fetch('/api/briefs', {
@@ -1561,20 +1485,13 @@ briefForm.addEventListener('submit', async (e) => {
     });
 
     if (!res.ok) {
-      // Server responded with an error status
       const err = new Error('http_error');
       err.status = res.status;
       throw err;
     }
 
-    // Mark as submitted
-    localStorage.setItem('ci_submitted', 'true');
-    hasSubmitted = true;
-    addBtn.textContent = 'brief submitted';
-    addBtn.disabled = true;
-
-    // Close form and reload terrain
     closeModal();
+    resetForm();
     await loadBriefs();
   } catch (err) {
     console.error('Submit error:', err);
@@ -1582,45 +1499,27 @@ briefForm.addEventListener('submit', async (e) => {
     formSubmitBtn.classList.remove('submitting');
     formSubmitBtn.textContent = 'try again';
 
-    // Distinguish network failure from server error
     let msg;
     if (err && err.status) {
-      // Server reachable but unhappy
-      if (err.status >= 500) {
-        msg = "The server hit a snag on its end. Try again in a moment.";
-      } else if (err.status === 429) {
-        msg = "Easy now. Wait a moment, then try again.";
-      } else if (err.status === 413) {
-        msg = "Your brief is a little long. Try trimming it a bit.";
-      } else {
-        msg = "The server didn't accept that. Refresh the page and try again.";
-      }
+      if (err.status >= 500)       msg = "The server hit a snag on its end. Try again in a moment.";
+      else if (err.status === 429) msg = "Easy now. Wait a moment, then try again.";
+      else if (err.status === 413) msg = "Your brief is a little long. Try trimming it a bit.";
+      else if (err.status === 409) msg = "This workshop accepts one brief per person. Yours is already in the landscape.";
+      else if (err.status === 404) msg = "Workshop not found. Check the link you came in on.";
+      else                          msg = "The server didn't accept that. Refresh the page and try again.";
     } else {
-      // Fetch threw — almost always a network failure
       msg = "Couldn't reach the server. Check your connection, then try again.";
     }
     showFormError(msg);
   }
 });
 
-function showFormError(msg) {
-  const el = document.getElementById('form-error');
-  if (!el) return;
-  if (!msg) {
-    el.textContent = '';
-    el.classList.remove('visible');
-    return;
-  }
-  el.textContent = msg;
-  el.classList.add('visible');
-}
-
 // ─── Polling ────────────────────────────────────────────────────────────────
 let lastBriefCount = 0;
 
 async function pollBriefs() {
   try {
-    const res = await fetch('/api/briefs');
+    const res = await fetch('/api/briefs?workshop=' + encodeURIComponent(WORKSHOP_SLUG));
     if (!res.ok) return;
     const data = await res.json();
     if (data.length !== lastBriefCount) {
@@ -1631,8 +1530,6 @@ async function pollBriefs() {
   } catch { /* silent */ }
 }
 
-// Poll for new briefs only when the tab is visible — no point fetching
-// in the background, and most browsers throttle hidden-tab intervals anyway.
 let pollTimer = null;
 function startPolling() {
   stopPolling();
@@ -1647,7 +1544,6 @@ document.addEventListener('visibilitychange', () => {
 });
 startPolling();
 
-// ─── Init ───────────────────────────────────────────────────────────────────
 loadTags();
 loadBriefs();
 </script>
