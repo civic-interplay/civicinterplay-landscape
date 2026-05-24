@@ -790,6 +790,42 @@
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
   }
 
+  /* ─── Empty state ────────────────────────────────────────────────── */
+  .empty-state {
+    position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    pointer-events: none;
+    padding: 2rem;
+  }
+
+  .empty-state.visible { display: flex; }
+
+  .empty-state-content { max-width: 320px; }
+
+  .empty-state-heading {
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgb(var(--text-rgb) / 0.72);
+    margin-bottom: 1rem;
+  }
+
+  .empty-state p {
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 400;
+    font-style: italic;
+    color: rgb(var(--text-rgb) / 0.62);
+    line-height: 1.7;
+    margin-bottom: 0.6rem;
+  }
+
   .visually-hidden {
     position: absolute;
     width: 1px;
@@ -935,7 +971,14 @@
     <div class="terrain-frame" id="terrain-frame">
       <canvas id="terrain-canvas" role="img" aria-label="A topographic preview of the landscape, shaped by submitted briefs. Magenta, mauve, and sage clusters represent thematic groupings."></canvas>
       <div id="cluster-labels" aria-hidden="true"></div>
-      <div class="terrain-hint">a preview of the landscape · open it to traverse</div>
+      <div class="empty-state" id="empty-state" aria-hidden="true">
+        <div class="empty-state-content">
+          <div class="empty-state-heading">An empty landscape</div>
+          <p>This workshop is waiting for its first brief.</p>
+          <p>The terrain takes shape as people enter it.</p>
+        </div>
+      </div>
+      <div class="terrain-hint" id="terrain-hint">a preview of the landscape · open it to traverse</div>
     </div>
     <aside class="stats-sidebar" id="stats-sidebar" aria-label="Landscape statistics">
       <div class="stat-block">
@@ -1074,8 +1117,18 @@
 
 <script>
 // ─── Workshop slug from URL ─────────────────────────────────────────────────
-// terrain.civicinterplay.io/?workshop=origin → 'origin'. Default is 'origin'.
-const WORKSHOP_SLUG = new URLSearchParams(window.location.search).get('workshop') || 'origin';
+// Path-based: terrain.civicinterplay.io/gi-sydney-2026 → 'gi-sydney-2026'.
+// Query-param fallback: ?workshop=slug. Default is 'origin'.
+function deriveWorkshopSlug() {
+  const path = window.location.pathname;
+  const m = path.match(/^\/([^\/]+?)(?:\/landscape)?\/?$/);
+  if (m && m[1] && m[1] !== 'landscape' && !m[1].includes('.')) {
+    return m[1];
+  }
+  const q = new URLSearchParams(window.location.search).get('workshop');
+  return q || 'origin';
+}
+const WORKSHOP_SLUG = deriveWorkshopSlug();
 
 // ─── Simplex noise ──────────────────────────────────────────────────────────
 const SimplexNoise = (function(){
@@ -1720,6 +1773,24 @@ async function loadBriefs() {
   } catch {
     BRIEFS = FALLBACK_BRIEFS;
   }
+
+  // Toggle empty state visibility based on whether the workshop has briefs
+  const emptyState = document.getElementById('empty-state');
+  const hint = document.getElementById('terrain-hint');
+  if (BRIEFS.length === 0) {
+    if (emptyState) {
+      emptyState.classList.add('visible');
+      emptyState.setAttribute('aria-hidden', 'false');
+    }
+    if (hint) hint.style.display = 'none';
+  } else {
+    if (emptyState) {
+      emptyState.classList.remove('visible');
+      emptyState.setAttribute('aria-hidden', 'true');
+    }
+    if (hint) hint.style.display = '';
+  }
+
   drawTerrain(BRIEFS);
   updateStats();
   renderBriefList();
@@ -1742,6 +1813,15 @@ async function loadTags() {
 
 loadTags();
 loadBriefs();
+
+// Make landscape/resonance links preserve workshop context
+(function applyWorkshopLinks() {
+  const landscapePath = WORKSHOP_SLUG === 'origin' ? '/landscape' : `/${encodeURIComponent(WORKSHOP_SLUG)}/landscape`;
+  const navLink = document.querySelector('.navbar-center a[href="/terrain.html"]');
+  if (navLink) navLink.setAttribute('href', landscapePath);
+  const resonanceLink = document.querySelector('.cta-resonance');
+  if (resonanceLink) resonanceLink.setAttribute('href', landscapePath);
+})();
 
 let resizeTimer = null;
 window.addEventListener('resize', () => {
