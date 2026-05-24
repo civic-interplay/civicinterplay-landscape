@@ -433,6 +433,40 @@ app.post('/api/query', async (req, res) => {
   }
 });
 
+// ─── Path-based workshop routing ────────────────────────────────────────────
+// /landscape           → terrain.html (default origin workshop)
+// /:slug               → index.html (workshop landing)
+// /:slug/landscape     → terrain.html (workshop interactive view)
+// Slugs are looked up in the workshops table; unknown slugs fall through to 404.
+
+app.get('/landscape', (req, res) => {
+  res.sendFile(join(__dirname, 'terrain.html'));
+});
+
+app.get('/:slug/landscape', async (req, res, next) => {
+  try {
+    const { data: workshop } = await supabase
+      .from('workshops').select('id').eq('slug', req.params.slug).single();
+    if (!workshop) return next();
+    res.sendFile(join(__dirname, 'terrain.html'));
+  } catch {
+    return next();
+  }
+});
+
+app.get('/:slug', async (req, res, next) => {
+  // Skip anything that looks like a file (has an extension)
+  if (req.params.slug.includes('.')) return next();
+  try {
+    const { data: workshop } = await supabase
+      .from('workshops').select('id').eq('slug', req.params.slug).single();
+    if (!workshop) return next();
+    res.sendFile(join(__dirname, 'index.html'));
+  } catch {
+    return next();
+  }
+});
+
 // ─── Start ──────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
