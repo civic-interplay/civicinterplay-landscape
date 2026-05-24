@@ -645,6 +645,12 @@
   <button class="add-btn" id="add-btn">add your brief →</button>
 </div>
 
+<div class="empty-state" id="empty-state" aria-hidden="true" style="display:none; z-index:8;">
+  <p style="font-family:'Cormorant Garamond', Georgia, serif; font-size:11px; font-weight:500; letter-spacing:0.16em; text-transform:uppercase; color:rgb(var(--text-light-rgb) / 0.72); margin-bottom:1rem;">An empty landscape</p>
+  <p>This workshop is waiting for its first brief.</p>
+  <p>The terrain takes shape as people enter it.</p>
+</div>
+
 <div id="tooltip" role="tooltip" aria-hidden="true">
   <div class="tooltip-inner" id="tt-inner">
     <button type="button" class="tooltip-close" id="tt-close" aria-label="Close brief">×</button>
@@ -719,8 +725,18 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
 <script>
 // ─── Workshop slug from URL ─────────────────────────────────────────────────
-// terrain.civicinterplay.io/terrain.html?workshop=origin → 'origin'. Default is 'origin'.
-const WORKSHOP_SLUG = new URLSearchParams(window.location.search).get('workshop') || 'origin';
+// Path-based: terrain.civicinterplay.io/gi-sydney-2026/landscape → 'gi-sydney-2026'.
+// Query-param fallback: ?workshop=slug. Default is 'origin'.
+function deriveWorkshopSlug() {
+  const path = window.location.pathname;
+  const m = path.match(/^\/([^\/]+?)(?:\/landscape)?\/?$/);
+  if (m && m[1] && m[1] !== 'landscape' && !m[1].includes('.')) {
+    return m[1];
+  }
+  const q = new URLSearchParams(window.location.search).get('workshop');
+  return q || 'origin';
+}
+const WORKSHOP_SLUG = deriveWorkshopSlug();
 
 // ─── State ──────────────────────────────────────────────────────────────────
 let BRIEFS = [];
@@ -987,6 +1003,23 @@ function rebuildTerrain() {
 
   document.getElementById('count-n').textContent = BRIEFS.length || '—';
   renderBriefList();
+
+  // Toggle empty state visibility based on whether the workshop has briefs
+  const emptyState = document.getElementById('empty-state');
+  const hintEl = document.querySelector('.hint');
+  if (BRIEFS.length === 0) {
+    if (emptyState) {
+      emptyState.style.display = 'block';
+      emptyState.setAttribute('aria-hidden', 'false');
+    }
+    if (hintEl) hintEl.style.display = 'none';
+  } else {
+    if (emptyState) {
+      emptyState.style.display = 'none';
+      emptyState.setAttribute('aria-hidden', 'true');
+    }
+    if (hintEl) hintEl.style.display = '';
+  }
 }
 
 function renderBriefList() {
