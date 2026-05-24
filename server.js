@@ -55,12 +55,13 @@ function briefToDocument(brief) {
   return parts.join(' ');
 }
 
-// ─── UMAP projection ────────────────────────────────────────────────────────
-async function reprojectAll() {
-  // Fetch all briefs with embeddings
+// ─── UMAP projection (workshop-scoped) ──────────────────────────────────────
+async function reprojectWorkshop(workshopId) {
+  // Fetch all briefs in this workshop with embeddings
   const { data: briefs, error } = await supabase
     .from('briefs')
     .select('id, embedding')
+    .eq('workshop_id', workshopId)
     .not('embedding', 'is', null);
 
   if (error) throw error;
@@ -99,7 +100,7 @@ async function reprojectAll() {
 
     coords = umap.fit(embeddings);
 
-    // Scale to [-0.8, 0.8] range (leave margin at terrain edges)
+    // Scale to [-0.8, 0.8] range
     let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
     for (const [x, y] of coords) {
       if (x < minX) minX = x;
@@ -115,7 +116,7 @@ async function reprojectAll() {
     ]);
   }
 
-  // Compute Gaussian KDE density at each brief position
+  // Gaussian KDE density at each brief position
   const bandwidth = 0.18;
   const densities = coords.map(([px, py]) => {
     let density = 0;
@@ -126,81 +127,171 @@ async function reprojectAll() {
     return density;
   });
 
-  // Normalise densities
   const maxDensity = Math.max(...densities) || 1;
 
   // Write back to Supabase
-  const updates = briefs.map((b, i) => ({
-    id: b.id,
-    x: coords[i][0],
-    y: coords[i][1],
-    density: densities[i] / maxDensity,
-  }));
-
-  for (const u of updates) {
+  for (let i = 0; i < briefs.length; i++) {
     await supabase
       .from('briefs')
-      .update({ x: u.x, y: u.y, density: u.density })
-      .eq('id', u.id);
+      .update({
+        x: coords[i][0],
+        y: coords[i][1],
+        density: densities[i] / maxDensity,
+      })
+      .eq('id', briefs[i].id);
   }
 }
 
-// ─── API Routes ─────────────────────────────────────────────────────────────
+// ─── Workshop API Routes ────────────────────────────────────────────────────
 
-// GET /api/briefs — fetch all briefs with coordinates and tags (no embeddings)
+// GET /api/workshops — list all workshops
+app.get('/api/workshops', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('workshops')
+      .select('id, slug, title, description, host_name, type, status, settings, created_at')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    res.json(data || []);
+  } catch (err) {
+    console.error('GET /api/workshops error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/workshops/:slug — fetch one workshop
+app.get('/api/workshops/:slug', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('workshops')
+      .select('id, slug, title, description, host_name, type, status, settings, created_at')
+      .eq('slug', req.params.slug)
+      .single();
+    if (error || !data) return res.status(404).json({ error: 'workshop not found' });
+    res.json(data);
+  } catch (err) {
+    console.error('GET /api/workshops/:slug error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/workshops — create a workshop. Add auth in production.
+app.post('/api/workshops', async (req, res) => {
+  try {
+    const { slug, title, description, host_name, type = 'terrain', settings } = req.body;
+    if (!slug || !title) return res.status(400).json({ error: 'slug and title are required' });
+    const { data, error } = await supabase
+      .from('workshops')
+      .insert({
+        slug, title, description, host_name, type,
+        settings: settings || { allow_multiple_per_person: true },
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    res.json(data);
+  } catch (err) {
+    console.error('POST /api/workshops error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Briefs API Routes (workshop-scoped) ────────────────────────────────────
+
+// GET /api/briefs?workshop=slug — fetch briefs for one workshop
 app.get('/api/briefs', async (req, res) => {
   try {
+    const { workshop: workshopSlug } = req.query;
+    if (!workshopSlug) {
+      return res.status(400).json({ error: 'workshop query param is required (e.g. ?workshop=origin)' });
+    }
+
+    const { data: workshop, error: wErr } = await supabase
+      .from('workshops')
+      .select('id')
+      .eq('slug', workshopSlug)
+      .single();
+    if (wErr || !workshop) {
+      return res.status(404).json({ error: 'workshop not found' });
+    }
+
     const { data: briefs, error } = await supabase
       .from('briefs')
       .select('id, created_at, participant_name, practice_area, what_im_working_on, question_im_carrying, what_push_i_want, x, y, density')
+      .eq('workshop_id', workshop.id)
       .order('created_at', { ascending: true });
-
     if (error) throw error;
 
-    // Fetch tags for each brief
-    const { data: briefTags, error: btError } = await supabase
-      .from('brief_tags')
-      .select('brief_id, tag_id, tags(label)');
+    const briefIds = (briefs || []).map(b => b.id);
+    let briefTags = [];
+    if (briefIds.length > 0) {
+      const { data: bt, error: btError } = await supabase
+        .from('brief_tags')
+        .select('brief_id, tag_id, tags(label)')
+        .in('brief_id', briefIds);
+      if (btError) throw btError;
+      briefTags = bt || [];
+    }
 
-    if (btError) throw btError;
-
-    // Group tags by brief
     const tagsByBrief = {};
-    for (const bt of (briefTags || [])) {
+    for (const bt of briefTags) {
       if (!tagsByBrief[bt.brief_id]) tagsByBrief[bt.brief_id] = [];
       tagsByBrief[bt.brief_id].push(bt.tags?.label || '');
     }
 
-    // Attach tags to briefs
-    const result = (briefs || []).map(b => ({
-      ...b,
-      tags: tagsByBrief[b.id] || [],
-    }));
-
-    res.json(result);
+    res.json((briefs || []).map(b => ({ ...b, tags: tagsByBrief[b.id] || [] })));
   } catch (err) {
     console.error('GET /api/briefs error:', err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// POST /api/briefs — submit a new brief
+// POST /api/briefs — submit a brief to a workshop
 app.post('/api/briefs', async (req, res) => {
   try {
-    const { participant_name, practice_area, what_im_working_on, question_im_carrying, what_push_i_want, tag_ids } = req.body;
+    const {
+      workshop_slug,
+      participant_name,
+      practice_area,
+      what_im_working_on,
+      question_im_carrying,
+      what_push_i_want,
+      tag_ids,
+    } = req.body;
 
-    if (!question_im_carrying) {
-      return res.status(400).json({ error: 'question_im_carrying is required' });
+    if (!workshop_slug) return res.status(400).json({ error: 'workshop_slug is required' });
+    if (!question_im_carrying) return res.status(400).json({ error: 'question_im_carrying is required' });
+
+    const { data: workshop, error: wErr } = await supabase
+      .from('workshops')
+      .select('id, settings, status')
+      .eq('slug', workshop_slug)
+      .single();
+    if (wErr || !workshop) return res.status(404).json({ error: 'workshop not found' });
+    if (workshop.status !== 'active') {
+      return res.status(403).json({ error: 'workshop is not accepting submissions' });
     }
 
-    // Build document and embed
+    // Per-workshop one-per-person enforcement (off by default)
+    if (workshop.settings?.allow_multiple_per_person === false && participant_name) {
+      const { data: existing } = await supabase
+        .from('briefs')
+        .select('id')
+        .eq('workshop_id', workshop.id)
+        .eq('participant_name', participant_name)
+        .limit(1);
+      if (existing && existing.length > 0) {
+        return res.status(409).json({ error: 'You have already contributed to this workshop' });
+      }
+    }
+
     const doc = briefToDocument(req.body);
     const embedding = await embedText(doc);
 
-    // Insert brief
     const { data: brief, error } = await supabase
       .from('briefs')
       .insert({
+        workshop_id: workshop.id,
         participant_name,
         practice_area,
         what_im_working_on,
@@ -210,20 +301,16 @@ app.post('/api/briefs', async (req, res) => {
       })
       .select('id')
       .single();
-
     if (error) throw error;
 
-    // Insert brief_tags
     if (tag_ids && tag_ids.length > 0) {
       const rows = tag_ids.map(tid => ({ brief_id: brief.id, tag_id: tid }));
       const { error: btError } = await supabase.from('brief_tags').insert(rows);
       if (btError) console.error('Tag insert error:', btError);
     }
 
-    // Re-project all briefs via UMAP
-    await reprojectAll();
+    await reprojectWorkshop(workshop.id);
 
-    // Fetch updated brief with coordinates
     const { data: updated } = await supabase
       .from('briefs')
       .select('id, participant_name, question_im_carrying, x, y, density')
@@ -237,7 +324,9 @@ app.post('/api/briefs', async (req, res) => {
   }
 });
 
-// GET /api/tags — list all tags
+// ─── Tags API Routes ────────────────────────────────────────────────────────
+
+// GET /api/tags — list all tags (global, not workshop-scoped)
 app.get('/api/tags', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -274,7 +363,9 @@ app.post('/api/tags', async (req, res) => {
   }
 });
 
-// POST /api/edges — declare a connection
+// ─── Edges API Routes ───────────────────────────────────────────────────────
+
+// POST /api/edges — declare a connection between two briefs
 app.post('/api/edges', async (req, res) => {
   try {
     const { from_brief_id, to_brief_id, edge_type } = req.body;
@@ -292,24 +383,28 @@ app.post('/api/edges', async (req, res) => {
   }
 });
 
-// POST /api/query — semantic search
+// ─── Semantic search (workshop-scoped) ──────────────────────────────────────
+
+// POST /api/query — semantic search within a workshop
 app.post('/api/query', async (req, res) => {
   try {
-    const { text, limit = 5 } = req.body;
+    const { text, workshop_slug, limit = 5 } = req.body;
     if (!text) return res.status(400).json({ error: 'text is required' });
+    if (!workshop_slug) return res.status(400).json({ error: 'workshop_slug is required' });
+
+    const { data: workshop, error: wErr } = await supabase
+      .from('workshops').select('id').eq('slug', workshop_slug).single();
+    if (wErr || !workshop) return res.status(404).json({ error: 'workshop not found' });
 
     const embedding = await embedText(text);
 
-    // Use pgvector cosine similarity via RPC or raw query
-    // For now, fetch all and compute client-side (fine for <100 briefs)
     const { data: briefs, error } = await supabase
       .from('briefs')
       .select('id, participant_name, question_im_carrying, x, y, density, embedding')
+      .eq('workshop_id', workshop.id)
       .not('embedding', 'is', null);
-
     if (error) throw error;
 
-    // Cosine similarity
     function cosineSim(a, b) {
       let dot = 0, magA = 0, magB = 0;
       for (let i = 0; i < a.length; i++) {
@@ -326,15 +421,11 @@ app.post('/api/query', async (req, res) => {
         id: b.id,
         participant_name: b.participant_name,
         question_im_carrying: b.question_im_carrying,
-        x: b.x,
-        y: b.y,
-        density: b.density,
+        x: b.x, y: b.y, density: b.density,
         similarity: cosineSim(embedding, emb),
       };
     });
-
     scored.sort((a, b) => b.similarity - a.similarity);
-
     res.json(scored.slice(0, limit));
   } catch (err) {
     console.error('POST /api/query error:', err);
